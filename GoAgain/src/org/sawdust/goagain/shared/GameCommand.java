@@ -1,4 +1,4 @@
-package org.sawdust.goagain.client;
+package org.sawdust.goagain.shared;
 
 public abstract class GameCommand<T> {
 

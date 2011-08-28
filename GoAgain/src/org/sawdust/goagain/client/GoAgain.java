@@ -1,23 +1,26 @@
 package org.sawdust.goagain.client;
 
+import org.sawdust.goagain.shared.GoGame;
+import org.sawdust.goagain.shared.GoAI;
+import org.sawdust.goagain.shared.GreetingService;
+import org.sawdust.goagain.shared.GreetingServiceAsync;
+import org.sawdust.goagain.shared.Tile;
+
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.dom.client.Style.VerticalAlign;
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.logical.shared.CloseEvent;
-import com.google.gwt.event.logical.shared.CloseHandler;
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HasVerticalAlignment.VerticalAlignmentConstant;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.PopupPanel;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
@@ -25,13 +28,13 @@ import com.google.gwt.user.client.ui.Widget;
 
 public class GoAgain implements EntryPoint {
 
-  //private final GreetingServiceAsync greetingService = GWT.create(GreetingService.class);
+  public static final GreetingServiceAsync service = GWT.create(GreetingService.class);
 
   private Canvas canvas;
 
   private int height;
   private int width;
-  Board game = new Board();
+  GoBoard board = new GoBoard(new GoGame());
   GoAI[] ai = {new GoAI(), new GoAI()};
 
   private Widget infoWidget;
@@ -93,7 +96,7 @@ public class GoAgain implements EntryPoint {
       final Button button = new Button("Reset Game");
       addControl(vpanel, button, new ClickHandler() {
         public void onClick(ClickEvent event) {
-          game.reset();
+          board.game.reset();
           update();
         }
       });
@@ -128,7 +131,7 @@ public class GoAgain implements EntryPoint {
           VerticalPanel dialogVPanel = new VerticalPanel();
           dialogBox.add(dialogVPanel);
           
-          dialogVPanel.add(game.getConfigWidget());
+          dialogVPanel.add(board.getConfigWidget());
 
           Button close = new Button("OK");
           dialogVPanel.add(close);
@@ -153,7 +156,7 @@ public class GoAgain implements EntryPoint {
           VerticalPanel dialogVPanel = new VerticalPanel();
           dialogBox.add(dialogVPanel);
           
-          dialogVPanel.add(ai[0].getConfigWidget());
+          dialogVPanel.add(GoAiConfig.getConfigWidget(ai[0]));
 
           Button close = new Button("OK");
           dialogVPanel.add(close);
@@ -178,7 +181,7 @@ public class GoAgain implements EntryPoint {
           VerticalPanel dialogVPanel = new VerticalPanel();
           dialogBox.add(dialogVPanel);
           
-          dialogVPanel.add(ai[1].getConfigWidget());
+          dialogVPanel.add(GoAiConfig.getConfigWidget(ai[1]));
 
           Button close = new Button("OK");
           dialogVPanel.add(close);
@@ -195,7 +198,7 @@ public class GoAgain implements EntryPoint {
       });
     }
 
-    Widget boardInfo = game.getInfoWidget();
+    Widget boardInfo = board.getInfo();
     vpanel.add(boardInfo);
     int h = vpanel.getOffsetHeight() - boardInfo.getAbsoluteTop();
     vpanel.setCellHeight(boardInfo, h + "px");
@@ -223,8 +226,8 @@ public class GoAgain implements EntryPoint {
   private void addHandlers() {
     canvas.addClickHandler(new ClickHandler() {
       public void onClick(ClickEvent event) {
-        Tile nearestTile = game.nearestTile(event.getX(),event.getY(), width, height);
-        game.occupy(nearestTile, game.currentPlayer);
+        Tile nearestTile = board.game.nearestTile(event.getX(),event.getY(), width, height);
+        board.game.occupy(nearestTile, board.game.currentPlayer);
         update();
         if(aiEnabled) aiAsync();
       }
@@ -232,33 +235,65 @@ public class GoAgain implements EntryPoint {
   }
   
   protected void aiAsync() {
-    new Timer() {
-      @Override
-      public void run() {
-        if(!aiEnabled) return;
-        ai[game.currentPlayer-1].move(game);
-        update();
-        if(null == game.winner && autoplay) aiAsync();
-      }
-    }.schedule(1);
+    if(!aiEnabled) return;
+    final GoAI goAI = ai[board.game.currentPlayer-1];
+    if(goAI.useServer && !GoAI.isServer)
+    {
+      service.move(board.game, goAI, new AsyncCallback<GoGame>() {
+        public void onSuccess(GoGame result) {
+          board.game = result;
+          update();
+          if(null == board.game.winner && autoplay) aiAsync();
+        }
+        
+        public void onFailure(Throwable caught) {
+          final DialogBox dialogBox = new DialogBox();
+          VerticalPanel w = new VerticalPanel();
+          w.add(new Label("Server Error"));
+          w.add(new Label(caught.getMessage()));
+          caught.printStackTrace();
+          Button close = new Button("Close");
+          close.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
+              dialogBox.hide();
+            }
+          });
+          w.add(close);
+          dialogBox.add(w);
+          dialogBox.center();
+          dialogBox.show();
+        }
+      });
+    }
+    else
+    {
+      new Timer() {
+        @Override
+        public void run() {
+          goAI.move(board.game);
+          update();
+          if(null == board.game.winner && autoplay) aiAsync();
+        }
+      }.schedule(1);
+    }
   }
 
   private void update() {
-    if(null != game.winner)
+    if(null != board.game.winner)
     {
       final DialogBox dialogBox = new DialogBox();
       VerticalPanel dialogVPanel = new VerticalPanel();
       dialogBox.add(dialogVPanel);
       
       HTML w = new HTML();
-      w.setText((game.winner==0?"Black":"White")+" Player Won!");
+      w.setText((board.game.winner==0?"Black":"White")+" Player Won!");
       dialogVPanel.add(w);
 
       Button close = new Button("OK");
       dialogVPanel.add(close);
       close.addClickHandler(new ClickHandler() {
         public void onClick(ClickEvent event) {
-          game.reset();
+          board.game.reset();
           dialogBox.hide();
           update();
         }
@@ -269,6 +304,6 @@ public class GoAgain implements EntryPoint {
     }
     Context2d context = canvas.getContext2d();
     context.clearRect(0, 0, width, height);
-    game.draw(context, width, height);
+    board.draw(context, width, height);
   }
 }

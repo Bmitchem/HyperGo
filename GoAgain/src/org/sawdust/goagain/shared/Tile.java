@@ -1,28 +1,24 @@
-package org.sawdust.goagain.client;
+package org.sawdust.goagain.shared;
 
+import java.io.Serializable;
 import java.util.Collection;
 
-public abstract class Tile {
+@SuppressWarnings("serial")
+public abstract class Tile implements Serializable {
 
-  final int idx;
-  final double x;
-  final double y;
+  int idx;
+  public double x;
+  public double y;
+
+  protected Tile() {
+    super();
+  }
 
   public Tile(int idx, double x, double y) {
     super();
     this.idx = idx;
     this.x = x;
     this.y = y;
-  }
-
-  public abstract Collection<Tile> neighbors();
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + idx;
-    return result;
   }
 
   @Override
@@ -34,6 +30,16 @@ public abstract class Tile {
     if (idx != other.idx) return false;
     return true;
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + idx;
+    return result;
+  }
+
+  public abstract Collection<Tile> neighbors();
 
   @Override
   public String toString() {

@@ -1,32 +1,28 @@
-package org.sawdust.goagain.client;
+package org.sawdust.goagain.shared;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-import com.google.gwt.event.logical.shared.ValueChangeEvent;
-import com.google.gwt.event.logical.shared.ValueChangeHandler;
-import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.IntegerBox;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
+@SuppressWarnings("serial")
+public class GoAI implements Serializable {
 
-public class GoAI {
-
-  int depth = 1;
-  int breadth = 20;
+  public static boolean isServer = false;
+  public boolean useServer = true;
+  public int depth = 1;
+  public int breadth = 20;
   
-  public void move(Board board) {
+  public void move(GoGame board) {
     move(board, depth, breadth);
   }
 
-  protected GameCommand<Board> move(final Board game, final int depth, final int width)
+  protected GameCommand<GoGame> move(final GoGame game, final int depth, final int width)
   {
-      ArrayList<GameCommand<Board>> moves1 = game.getMoves();
-      Collections.sort(moves1, new Comparator<GameCommand<Board>>()
+      ArrayList<GameCommand<GoGame>> moves1 = game.getMoves();
+      Collections.sort(moves1, new Comparator<GameCommand<GoGame>>()
       {
-          public int compare(GameCommand<Board> o1, GameCommand<Board> o2)
+          public int compare(GameCommand<GoGame> o1, GameCommand<GoGame> o2)
           {
               double v1 = 0.0;
               double v2 = 0.0;
@@ -37,17 +33,17 @@ public class GoAI {
               return compare1;
           }
       });
-      ArrayList<GameCommand<Board>> moves = moves1;
-      GameCommand<Board> bestMove = null;
+      ArrayList<GameCommand<GoGame>> moves = moves1;
+      GameCommand<GoGame> bestMove = null;
       double bestFitness = Integer.MIN_VALUE;
       int currentWidth = 0;
-      for (GameCommand<Board> thisMove : moves)
+      for (GameCommand<GoGame> thisMove : moves)
       {
           if (currentWidth++ > width) break;
-          Board hypotheticalGame = new Board(game);
-          ArrayList<GameCommand<Board>> moves2 = hypotheticalGame.getMoves();
+          GoGame hypotheticalGame = new GoGame(game);
+          ArrayList<GameCommand<GoGame>> moves2 = hypotheticalGame.getMoves();
           String commandText = thisMove.getCommandText();
-          for (GameCommand<Board> i : moves2)
+          for (GameCommand<GoGame> i : moves2)
           {
             if (i.getCommandText().equals(commandText))
             {
@@ -74,9 +70,9 @@ public class GoAI {
       return bestMove;
   }
 
-  protected double gameFitness(Board game)
+  protected double gameFitness(GoGame game)
   {
-     Board goGame = game;
+     GoGame goGame = game;
      if (null == game) return Integer.MIN_VALUE;
      int playerIdx = game.currentPlayer;
      int otherIdx = (playerIdx == 1) ? 2 : 1;
@@ -106,10 +102,10 @@ public class GoAI {
      return fitness;
   }
   
-  private double moveFitness(GameCommand<Board> o1, Board game, double v1)
+  private double moveFitness(GameCommand<GoGame> o1, GoGame game, double v1)
   {
     int playerIdx = game.currentPlayer;
-    Board.Move move = ((Board.Move)o1);
+    GoGame.Move move = ((GoGame.Move)o1);
     int freindlyCount = 0;
     int enemyCount = 0;
     for(Tile t : move.tile.neighbors())
@@ -145,40 +141,6 @@ public class GoAI {
       x += enemyCount;
     }
     return x;
-  }
-
-  public Widget getConfigWidget() {
-    VerticalPanel verticalPanel = new VerticalPanel();
-    
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Depth: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(depth);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          depth = event.getValue();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-    
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Bredth: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(breadth);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          breadth = event.getValue();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-    
-    return verticalPanel;
   }
 
 }
