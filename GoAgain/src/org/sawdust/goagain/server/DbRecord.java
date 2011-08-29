@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -29,6 +31,7 @@ public class DbRecord {
   @Persistent private Key id;
   @Persistent private String key;
   @Persistent private com.google.appengine.api.datastore.Blob blob = null;
+  @Persistent private List<String> members = new ArrayList<String>();
 
   public void setValue(GameRecord gameRecord) {
     this.blob = new Blob(toBytes(gameRecord));
@@ -104,5 +107,13 @@ public class DbRecord {
         throw new RuntimeException(e);
       }
       return data;
+  }
+
+  public void setMembers(List<String> members) {
+    this.members = members;
+  }
+
+  public List<String> getMembers() {
+    return members;
   }
 }

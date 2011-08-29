@@ -1,5 +1,6 @@
 package org.sawdust.goagain.server;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -16,6 +17,9 @@ import org.sawdust.goagain.shared.GoAI;
 import org.sawdust.goagain.shared.GoGame;
 import org.sawdust.goagain.shared.GameService;
 
+import com.google.appengine.api.channel.ChannelMessage;
+import com.google.appengine.api.channel.ChannelService;
+import com.google.appengine.api.channel.ChannelServiceFactory;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
 @SuppressWarnings("serial")
@@ -96,7 +100,8 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
 
   public GameId saveGame(final GameId key, final GameData data) {
     final String name = key.key;
-    return run(new Op<GameId>(){
+    final ArrayList<String> members = new ArrayList<String>();
+    GameId run = run(new Op<GameId>(){
       public GameId exe(PersistenceManager em) {
         DbRecord dbRecord = getGame(em, name);
         GameRecord record = dbRecord.getValue();
@@ -107,9 +112,16 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
         record.activeId = new GameId(key.key, key.version + 1);
         record.data = data;
         dbRecord.setValue(record);
+        members.addAll(dbRecord.getMembers());
         return record.activeId;
       }
     });
+    for(String member : members)
+    {
+      ChannelService channelService = ChannelServiceFactory.getChannelService();
+      channelService.sendMessage(new ChannelMessage(member, Integer.toString(run.version)));
+    }
+    return run;
   }
   
   protected DbRecord getGame(PersistenceManager em, final String name) {
@@ -120,6 +132,20 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
     if (0 == list.size()) throw new RuntimeException("No Game Found: " + name);
     if (1 < list.size()) throw new RuntimeException("Multiple Games Found: " + name);
     return list.get(0);
+  }
+
+  public String joinGame(final GameId key) {
+    final String name = key.key;
+    return run(new Op<String>(){
+      public String exe(PersistenceManager em) {
+        DbRecord dbRecord = getGame(em, name);
+        ChannelService channelService = ChannelServiceFactory.getChannelService();
+        String client = key.key + Long.toHexString(System.currentTimeMillis());
+        String token = channelService.createChannel(client);
+        dbRecord.getMembers().add(client);
+        return token;
+      }
+    });
   }
 
 }

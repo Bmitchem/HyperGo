@@ -14,4 +14,6 @@ public interface GameServiceAsync {
 
   void getGame(GameId key, AsyncCallback<GameRecord> callback);
 
+  void joinGame(GameId key, AsyncCallback<String> callback);
+
 }

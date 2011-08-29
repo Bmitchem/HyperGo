@@ -12,4 +12,5 @@ public interface GameService extends RemoteService {
   GameId newGame(GameData data);
   GameId saveGame(GameId key, GameData name);
   GameRecord getGame(GameId key);
+  String joinGame(GameId key);
 }

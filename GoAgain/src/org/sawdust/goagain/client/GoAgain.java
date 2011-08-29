@@ -9,6 +9,11 @@ import org.sawdust.goagain.shared.GameService;
 import org.sawdust.goagain.shared.GameServiceAsync;
 import org.sawdust.goagain.shared.Tile;
 
+import com.google.gwt.appengine.channel.client.Channel;
+import com.google.gwt.appengine.channel.client.ChannelFactory;
+import com.google.gwt.appengine.channel.client.ChannelFactory.ChannelCreatedCallback;
+import com.google.gwt.appengine.channel.client.SocketError;
+import com.google.gwt.appengine.channel.client.SocketListener;
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.core.client.EntryPoint;
@@ -329,6 +334,15 @@ public class GoAgain implements EntryPoint {
     };
   }
 
+  protected void loadStateAsync() {
+    new Timer(){
+      @Override
+      public void run() {
+        loadState();
+      }
+    }.schedule(1);
+  }
+
   protected void loadState() {
     loadState(new AsyncCallback<Void>() {
       public void onSuccess(Void result) {
@@ -347,6 +361,7 @@ public class GoAgain implements EntryPoint {
     });
   }
 
+  boolean channelInit = false;
   protected void loadState(final AsyncCallback<Void> onComplete) {
     if(!persist) {
       onComplete.onSuccess(null);
@@ -364,6 +379,44 @@ public class GoAgain implements EntryPoint {
         onComplete.onSuccess(null);
       }
     });
+    if(!channelInit)
+    {
+      channelInit = true;
+      service.joinGame(gameId, new AsyncCallback<String>() {
+        
+        public void onSuccess(final String token) {
+          ChannelFactory.createChannel(token, new ChannelCreatedCallback() {
+            public void onChannelCreated(Channel channel) {
+              channel.open(new SocketListener() {
+                public void onOpen() {
+                  System.out.println("Channel opened: " + token);
+                }
+                public void onMessage(String message) {
+                  int parseInt = Integer.parseInt(message.replaceAll("[\n ]", ""));
+                  System.out.println("Received: " + parseInt + 
+                      " (Current Version: " + gameId.version + ")" + 
+                      " (Channel: " + token + ")");
+                  if(gameId.version < parseInt)
+                  {
+                    loadStateAsync();
+                  }
+                }
+                public void onError(SocketError error) {
+                  System.out.println("Error: " + error.getDescription());
+                }
+                public void onClose() {
+                  System.out.println("Channel closed: " + token);
+                }
+              });
+            }
+          });
+        }
+        public void onFailure(Throwable caught) {
+          caught.printStackTrace(System.err);
+          System.err.println("Channel open failed!");
+        }
+      });
+    }
   }
 
   protected void saveState() {
