@@ -62,7 +62,7 @@ public class GoAgain implements EntryPoint {
   public GameId gameId;
   private boolean aiEnabled = true;
   private boolean autoplay = false;
-  private boolean persist = true;
+  private boolean persist = false;
   private GameData data;
   private int height;
   private Widget infoWidget;
@@ -312,42 +312,21 @@ public class GoAgain implements EntryPoint {
     addHandlers();
   }
 
-  protected void newGame() {
-    data = new GameData();
-    data.game = new GoGame();
-    data.ai = new GoAI[] { new GoAI(), new GoAI() };
-    gameId = null;
-    service.newGame(data, new AsyncCallback<GameId>() {
-      public void onFailure(Throwable caught) {
-        caught.printStackTrace();
-        showDialog(new Label("Error Creating Game"), new Label(caught.getMessage()));
-      }
-
-      public void onSuccess(GameId result) {
-        gameId = result;
-        String queryString = Window.Location.getQueryString();
-        if (queryString.contains("?"))
-        {
-          Window.Location.assign(queryString + "&gameId=" + gameId.key);
-        }
-        else
-        {
-          Window.Location.assign(queryString + "?gameId=" + gameId.key);
-        }
-      }
-    });
-  }
-
   public void onModuleLoad() {
-    init();
     String key = Window.Location.getParameter("gameId");
     if (null == key) {
-      newGame();
+      persist = false;
+      data = new GameData();
+      data.game = new GoGame();
+      data.ai = new GoAI[] { new GoAI(), new GoAI() };
+      gameId = null;
+      init();
+      draw();
     } else {
+      persist = true;
       gameId = new GameId(key, 0);
       loadState();
     };
-
   }
 
   protected void loadState() {
@@ -455,20 +434,45 @@ public class GoAgain implements EntryPoint {
       onComplete.onSuccess(null);
       return;
     }
-    service.saveGame(gameId, data, new AsyncCallback<GameId>() {
-      public void onSuccess(GameId result) {
-        gameId = result;
-        onComplete.onSuccess(null);
-      }
-      public void onFailure(final Throwable caught) {
-        caught.printStackTrace();
-        showDialog(new Label("Save Game Failed"), new Label(caught.getMessage())).addCloseHandler(new CloseHandler<PopupPanel>() {
-          public void onClose(CloseEvent<PopupPanel> event) {
-            onComplete.onFailure(caught);
+    if(null == gameId)
+    {
+      service.newGame(data, new AsyncCallback<GameId>() {
+        public void onFailure(Throwable caught) {
+          caught.printStackTrace();
+          showDialog(new Label("Error Creating Game"), new Label(caught.getMessage()));
+        }
+      
+        public void onSuccess(GameId result) {
+          gameId = result;
+          String queryString = Window.Location.getQueryString();
+          if (queryString.contains("?"))
+          {
+            Window.Location.assign(queryString + "&gameId=" + gameId.key);
           }
-        });
-      }
-    });
+          else
+          {
+            Window.Location.assign(queryString + "?gameId=" + gameId.key);
+          }
+        }
+      });
+    }
+    else
+    {
+      service.saveGame(gameId, data, new AsyncCallback<GameId>() {
+        public void onSuccess(GameId result) {
+          gameId = result;
+          onComplete.onSuccess(null);
+        }
+        public void onFailure(final Throwable caught) {
+          caught.printStackTrace();
+          showDialog(new Label("Save Game Failed"), new Label(caught.getMessage())).addCloseHandler(new CloseHandler<PopupPanel>() {
+            public void onClose(CloseEvent<PopupPanel> event) {
+              onComplete.onFailure(caught);
+            }
+          });
+        }
+      });
+    }
   }
 
   protected void updateAsync() {

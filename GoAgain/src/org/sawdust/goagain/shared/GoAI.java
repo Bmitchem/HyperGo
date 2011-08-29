@@ -9,7 +9,7 @@ import java.util.Comparator;
 public class GoAI implements Serializable {
 
   public static boolean isServer = false;
-  public boolean useServer = true;
+  public boolean useServer = false;
   public int depth = 1;
   public int breadth = 20;
   
