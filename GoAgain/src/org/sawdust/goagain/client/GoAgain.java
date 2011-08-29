@@ -5,8 +5,8 @@ import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
 import org.sawdust.goagain.shared.GoGame;
 import org.sawdust.goagain.shared.GoAI;
-import org.sawdust.goagain.shared.GreetingService;
-import org.sawdust.goagain.shared.GreetingServiceAsync;
+import org.sawdust.goagain.shared.GameService;
+import org.sawdust.goagain.shared.GameServiceAsync;
 import org.sawdust.goagain.shared.Tile;
 
 import com.google.gwt.canvas.client.Canvas;
@@ -34,12 +34,18 @@ import com.google.gwt.user.client.ui.Widget;
 
 public class GoAgain implements EntryPoint {
 
-  public static final GreetingServiceAsync service = GWT.create(GreetingService.class);
+  public static final GameServiceAsync service = GWT.create(GameService.class);
 
+  public static interface OnComplete
+  {
+    void complete();
+  }
+  
   public static DialogBox showDialog(Label... widgets) {
     final DialogBox dialogBox = new DialogBox();
     VerticalPanel w = new VerticalPanel();
-    for(Label widget : widgets) w.add(widget);
+    for (Label widget : widgets)
+      w.add(widget);
     Button close = new Button("Close");
     close.addClickHandler(new ClickHandler() {
       public void onClick(ClickEvent event) {
@@ -56,11 +62,12 @@ public class GoAgain implements EntryPoint {
   public GameId gameId;
   private boolean aiEnabled = true;
   private boolean autoplay = false;
+  private boolean persist = true;
   private GameData data;
   private int height;
-  private Widget infoWidget; 
+  private Widget infoWidget;
   private int width;
-  
+
   private final GoBoard board = new GoBoard();
   private final Canvas canvas = Canvas.createIfSupported();
   private final SplitLayoutPanel basePanel = new SplitLayoutPanel();
@@ -75,10 +82,19 @@ public class GoAgain implements EntryPoint {
   private void addHandlers() {
     canvas.addClickHandler(new ClickHandler() {
       public void onClick(ClickEvent event) {
-        Tile nearestTile = data.game.nearestTile(event.getX(),event.getY(), width, height);
+        Tile nearestTile = data.game.nearestTile(event.getX(), event.getY(), width, height);
         data.game.occupy(nearestTile, data.game.currentPlayer);
-        update();
-        if(aiEnabled) aiAsync();
+        announceWinner();
+        draw();
+        saveState(new AsyncCallback<Void>() {
+          public void onFailure(Throwable caught) {
+            loadState();
+          }
+          public void onSuccess(Void result) {
+            if (aiEnabled) aiAsync();
+          }
+        });
+        
       }
     });
     Window.addResizeHandler(new ResizeHandler() {
@@ -90,37 +106,45 @@ public class GoAgain implements EntryPoint {
         canvas.setCoordinateSpaceHeight(height);
         canvas.setCoordinateSpaceWidth(width);
         infoWidget.setHeight(height + "px");
-        update();
+        draw();
       }
     });
   }
-  
+
   protected void aiAsync() {
-    if(!aiEnabled) return;
-    final GoAI goAI = data.ai[data.game.currentPlayer-1];
-    if(goAI.useServer && !GoAI.isServer)
-    {
+    if (!aiEnabled) return;
+    final AsyncCallback<Void> aiChainHandler = new AsyncCallback<Void>() {
+      public void onFailure(Throwable caught) {
+        loadState();
+      }
+      
+      public void onSuccess(Void result) {
+        if (null == data.game.winner && autoplay) aiAsync();
+      }
+    };
+    final GoAI goAI = data.ai[data.game.currentPlayer - 1];
+    if (goAI.useServer && !GoAI.isServer) {
       service.move(data.game, goAI, new AsyncCallback<GoGame>() {
         public void onFailure(Throwable caught) {
           caught.printStackTrace();
           showDialog(new Label("Server Error"), new Label(caught.getMessage()));
         }
-        
+
         public void onSuccess(GoGame result) {
           data.game = result;
-          update();
-          if(null == data.game.winner && autoplay) aiAsync();
+          announceWinner();
+          draw();
+          saveStateAsync(aiChainHandler);
         }
       });
-    }
-    else
-    {
+    } else {
       new Timer() {
         @Override
         public void run() {
           goAI.move(data.game);
-          update();
-          if(null == data.game.winner && autoplay) aiAsync();
+          announceWinner();
+          draw();
+          saveState(aiChainHandler);
         }
       }.schedule(1);
     }
@@ -138,31 +162,45 @@ public class GoAgain implements EntryPoint {
       addControl(vpanel, button, new ClickHandler() {
         public void onClick(ClickEvent event) {
           data.game.reset();
-          update();
+          draw();
+          saveState();
         }
       });
     }
-    
+
     {
-        final Button button = new Button("Demo " + (autoplay?"ON":"OFF"));
-        addControl(vpanel, button, new ClickHandler() {
-          public void onClick(ClickEvent event) {
-            autoplay = !autoplay;
-            button.setText("Demo " + (autoplay?"ON":"OFF"));
-          }
-        });
+      final Button button = new Button("Demo " + (autoplay ? "ON" : "OFF"));
+      addControl(vpanel, button, new ClickHandler() {
+        public void onClick(ClickEvent event) {
+          autoplay = !autoplay;
+          button.setText("Demo " + (autoplay ? "ON" : "OFF"));
+        }
+      });
     }
-    
+
     {
-      final Button button = new Button("Computer Player " + (aiEnabled?"ON":"OFF"));
+      final Button button = new Button("Computer Player " + (aiEnabled ? "ON" : "OFF"));
       addControl(vpanel, button, new ClickHandler() {
         public void onClick(ClickEvent event) {
           aiEnabled = !aiEnabled;
-          button.setText("Computer Player " + (aiEnabled?"ON":"OFF"));
+          button.setText("Computer Player " + (aiEnabled ? "ON" : "OFF"));
         }
       });
     }
-    
+
+    {
+      final Button button = new Button("Persistance " + (persist ? "ON" : "OFF"));
+      addControl(vpanel, button, new ClickHandler() {
+        public void onClick(ClickEvent event) {
+          persist = !persist;
+          button.setText("Persistance " + (persist ? "ON" : "OFF"));
+          if(persist)
+          {
+            saveStateAsync();
+          }
+        }
+      });
+    }
 
     {
       final Button button = new Button("Configure Game");
@@ -171,7 +209,7 @@ public class GoAgain implements EntryPoint {
           final DialogBox dialogBox = new DialogBox();
           VerticalPanel dialogVPanel = new VerticalPanel();
           dialogBox.add(dialogVPanel);
-          
+
           dialogVPanel.add(board.getConfigWidget(data.game));
 
           Button close = new Button("OK");
@@ -179,10 +217,11 @@ public class GoAgain implements EntryPoint {
           close.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
               dialogBox.hide();
-              update();
+              draw();
+              saveState();
             }
           });
-          
+
           dialogBox.center();
           dialogBox.show();
         }
@@ -196,7 +235,7 @@ public class GoAgain implements EntryPoint {
           final DialogBox dialogBox = new DialogBox();
           VerticalPanel dialogVPanel = new VerticalPanel();
           dialogBox.add(dialogVPanel);
-          
+
           dialogVPanel.add(GoAiConfig.getConfigWidget(data.ai[0]));
 
           Button close = new Button("OK");
@@ -204,10 +243,10 @@ public class GoAgain implements EntryPoint {
           close.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
               dialogBox.hide();
-              update();
+              saveState();
             }
           });
-          
+
           dialogBox.center();
           dialogBox.show();
         }
@@ -221,7 +260,7 @@ public class GoAgain implements EntryPoint {
           final DialogBox dialogBox = new DialogBox();
           VerticalPanel dialogVPanel = new VerticalPanel();
           dialogBox.add(dialogVPanel);
-          
+
           dialogVPanel.add(GoAiConfig.getConfigWidget(data.ai[1]));
 
           Button close = new Button("OK");
@@ -229,10 +268,10 @@ public class GoAgain implements EntryPoint {
           close.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
               dialogBox.hide();
-              update();
+              saveState();
             }
           });
-          
+
           dialogBox.center();
           dialogBox.show();
         }
@@ -243,23 +282,24 @@ public class GoAgain implements EntryPoint {
     vpanel.add(boardInfo);
     int h = vpanel.getOffsetHeight() - boardInfo.getAbsoluteTop();
     vpanel.setCellHeight(boardInfo, h + "px");
-    //vpanel.setCellVerticalAlignment(boardInfo, VerticalPanel.ALIGN_MIDDLE);
-    
+    // vpanel.setCellVerticalAlignment(boardInfo, VerticalPanel.ALIGN_MIDDLE);
+
     return vpanel;
   }
 
+  boolean init = false;
   protected void init() {
+    if(init) return;
+    init = true;
     RootPanel.get().add(basePanel);
-    
+
     height = Window.getClientHeight();
     width = Window.getClientWidth();
     basePanel.setWidth("100%");
     basePanel.setHeight(height + "px");
-    
-    
+
     infoWidget = getInfoWidget(basePanel);
-    
-    
+
     if (canvas == null) {
       RootPanel.get().add(new Label("HTML Canvas Element not supported"));
       return;
@@ -268,26 +308,25 @@ public class GoAgain implements EntryPoint {
     canvas.setCoordinateSpaceWidth(width);
     canvas.setCoordinateSpaceHeight(height);
     basePanel.add(canvas);
-    
+
     addHandlers();
-    update();
   }
-  
+
   protected void newGame() {
     data = new GameData();
     data.game = new GoGame();
-    data.ai = new GoAI[]{new GoAI(), new GoAI()};
+    data.ai = new GoAI[] { new GoAI(), new GoAI() };
     gameId = null;
     service.newGame(data, new AsyncCallback<GameId>() {
       public void onFailure(Throwable caught) {
         caught.printStackTrace();
         showDialog(new Label("Error Creating Game"), new Label(caught.getMessage()));
       }
-      
+
       public void onSuccess(GameId result) {
         gameId = result;
         String queryString = Window.Location.getQueryString();
-        if(queryString.contains("?"))
+        if (queryString.contains("?"))
         {
           Window.Location.assign(queryString + "&gameId=" + gameId.key);
         }
@@ -298,45 +337,84 @@ public class GoAgain implements EntryPoint {
       }
     });
   }
-  
+
   public void onModuleLoad() {
+    init();
     String key = Window.Location.getParameter("gameId");
-    if(null == key)
-    {
+    if (null == key) {
       newGame();
-    }
-    else
-    {
+    } else {
       gameId = new GameId(key, 0);
-      service.getGame(gameId, new AsyncCallback<GameRecord>() {
-        public void onFailure(Throwable caught) {
-          caught.printStackTrace();
-          showDialog(new Label("Error Getting Game"), new Label(caught.getMessage())).addCloseHandler(new CloseHandler<PopupPanel>() {
-            public void onClose(CloseEvent<PopupPanel> event) {
-              newGame();
-            }
-          });
-        }
-        
-        public void onSuccess(GameRecord result) {
-          data = result.data;
-          gameId = result.activeId;
-          init();
-        }
-      });
+      loadState();
     };
-    
+
   }
 
-  private void update() {
-    if(null != data.game.winner)
-    {
+  protected void loadState() {
+    loadState(new AsyncCallback<Void>() {
+      public void onSuccess(Void result) {
+      }
+      public void onFailure(Throwable caught) {
+        caught.printStackTrace();
+        showDialog(
+            new Label("Error Getting Game"), 
+            new Label(caught.getMessage())
+          ).addCloseHandler(new CloseHandler<PopupPanel>() {
+            public void onClose(CloseEvent<PopupPanel> event) {
+              loadState();
+            }
+          });
+      }
+    });
+  }
+
+  protected void loadState(final AsyncCallback<Void> onComplete) {
+    if(!persist) {
+      onComplete.onSuccess(null);
+      return;
+    }
+    service.getGame(gameId, new AsyncCallback<GameRecord>() {
+      public void onFailure(Throwable caught) {
+        onComplete.onFailure(caught);
+      }
+      public void onSuccess(GameRecord result) {
+        data = result.data;
+        gameId = result.activeId;
+        init();
+        draw();
+        onComplete.onSuccess(null);
+      }
+    });
+  }
+
+  protected void saveState() {
+    saveState(new AsyncCallback<Void>() {
+          public void onSuccess(Void result) {
+          }
+          public void onFailure(Throwable caught) {
+            loadState();
+          }
+        });
+  }
+
+  private void saveStateAsync() {
+    saveStateAsync(new AsyncCallback<Void>() {
+      public void onSuccess(Void result) {
+      }
+      public void onFailure(Throwable caught) {
+        loadState();
+      }
+    });
+  }
+
+  protected boolean announceWinner() {
+    if (null != data.game.winner) {
       final DialogBox dialogBox = new DialogBox();
       VerticalPanel dialogVPanel = new VerticalPanel();
       dialogBox.add(dialogVPanel);
-      
+
       HTML w = new HTML();
-      w.setText((data.game.winner==0?"Black":"White")+" Player Won!");
+      w.setText((data.game.winner == 0 ? "Black" : "White") + " Player Won!");
       dialogVPanel.add(w);
 
       Button close = new Button("OK");
@@ -345,25 +423,50 @@ public class GoAgain implements EntryPoint {
         public void onClick(ClickEvent event) {
           data.game.reset();
           dialogBox.hide();
-          update();
+          draw();
+          saveState();
         }
       });
-      
+
       dialogBox.center();
       dialogBox.show();
+      return true;
     }
+    return false;
+  }
+
+  protected void draw() {
     Context2d context = canvas.getContext2d();
     context.clearRect(0, 0, width, height);
     board.draw(data.game, context, width, height);
-    
+  }
+
+  private void saveStateAsync(final AsyncCallback<Void> handler) {
+    new Timer(){
+      @Override
+      public void run() {
+        saveState(handler);
+      }
+    }.schedule(1);
+  }
+
+  protected void saveState(final AsyncCallback<Void> onComplete) {
+    if(!persist) {
+      onComplete.onSuccess(null);
+      return;
+    }
     service.saveGame(gameId, data, new AsyncCallback<GameId>() {
       public void onSuccess(GameId result) {
         gameId = result;
+        onComplete.onSuccess(null);
       }
-      
-      public void onFailure(Throwable caught) {
+      public void onFailure(final Throwable caught) {
         caught.printStackTrace();
-        showDialog(new Label("Save Game Failed"), new Label(caught.getMessage()));
+        showDialog(new Label("Save Game Failed"), new Label(caught.getMessage())).addCloseHandler(new CloseHandler<PopupPanel>() {
+          public void onClose(CloseEvent<PopupPanel> event) {
+            onComplete.onFailure(caught);
+          }
+        });
       }
     });
   }
@@ -372,7 +475,9 @@ public class GoAgain implements EntryPoint {
     new Timer() {
       @Override
       public void run() {
-        update();
+        announceWinner();
+        draw();
+        saveState();
       }
     }.schedule(1);
   }

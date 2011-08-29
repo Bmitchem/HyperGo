@@ -5,7 +5,7 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
 /**
  * The async counterpart of <code>GreetingService</code>.
  */
-public interface GreetingServiceAsync {
+public interface GameServiceAsync {
   void move(GoGame name, GoAI goAI, AsyncCallback<GoGame> callback);
 
   void newGame(GameData data, AsyncCallback<GameId> callback);
