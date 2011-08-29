@@ -321,6 +321,7 @@ public class GoAgain implements EntryPoint {
     String key = Window.Location.getParameter("gameId");
     if (null == key) {
       persist = false;
+      aiEnabled = true;
       data = new GameData();
       data.game = new GoGame();
       data.ai = new GoAI[] { new GoAI(), new GoAI() };
@@ -329,6 +330,7 @@ public class GoAgain implements EntryPoint {
       draw();
     } else {
       persist = true;
+      aiEnabled = false;
       gameId = new GameId(key, 0);
       loadState();
     };
