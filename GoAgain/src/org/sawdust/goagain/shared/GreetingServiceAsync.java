@@ -7,4 +7,11 @@ import com.google.gwt.user.client.rpc.AsyncCallback;
  */
 public interface GreetingServiceAsync {
   void move(GoGame name, GoAI goAI, AsyncCallback<GoGame> callback);
+
+  void newGame(GameData data, AsyncCallback<GameId> callback);
+
+  void saveGame(GameId key, GameData name, AsyncCallback<GameId> callback);
+
+  void getGame(GameId key, AsyncCallback<GameRecord> callback);
+
 }

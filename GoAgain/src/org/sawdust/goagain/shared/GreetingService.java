@@ -9,4 +9,7 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
 @RemoteServiceRelativePath("greet")
 public interface GreetingService extends RemoteService {
   GoGame move(GoGame name, GoAI goAI);
+  GameId newGame(GameData data);
+  GameId saveGame(GameId key, GameData name);
+  GameRecord getGame(GameId key);
 }

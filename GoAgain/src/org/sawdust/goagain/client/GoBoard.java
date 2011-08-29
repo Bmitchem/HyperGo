@@ -22,17 +22,15 @@ public class GoBoard {
   static final CssColor white = CssColor.make("white");
 
   double boldness = 1.;
-  public GoGame game;
   private transient TextArea info = new TextArea();
   
-  public GoBoard(GoGame game) {
+  public GoBoard() {
     super();
     info.setVisibleLines(4);
     info.setWidth("100%");
-    this.game = game;
   }
 
-  public void draw(Context2d context, double width, int height) {
+  public void draw(GoGame game, Context2d context, double width, int height) {
     boldness = 9. / game.tileRows;
     double size = (width<height)?width:height;
     context.setFillStyle(tan);
@@ -129,7 +127,7 @@ public class GoBoard {
   }
 
   
-  public Widget getConfigWidget() {
+  public Widget getConfigWidget(final GoGame game) {
     VerticalPanel verticalPanel = new VerticalPanel();
     
     {
