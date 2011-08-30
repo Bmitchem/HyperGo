@@ -10,10 +10,12 @@ import javax.jdo.PersistenceManagerFactory;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
 import org.sawdust.goagain.shared.GoAI;
+import org.sawdust.goagain.shared.GoAI.Contemplation;
 import org.sawdust.goagain.shared.GoGame;
 import org.sawdust.goagain.shared.GameService;
 
@@ -63,7 +65,18 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
   }
 
   public GoGame move(GoGame game, GoAI goAI) {
-    goAI.move(game);
+    long endTime = System.currentTimeMillis() + 30 * 1000;
+    Contemplation contemplation = goAI.newContemplation(game);
+    for(int i=0;i<goAI.breadth/10;i++)
+    {
+      if(endTime < System.currentTimeMillis()) break;
+      for(int j=0;j<10;j++)
+      {
+        contemplation.think();
+      }
+    }
+    GameCommand<GoGame> move = contemplation.best();
+    move.move(game);
     return game;
   };
 

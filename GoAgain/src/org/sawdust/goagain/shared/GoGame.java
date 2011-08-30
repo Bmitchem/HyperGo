@@ -2,6 +2,7 @@ package org.sawdust.goagain.shared;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 @SuppressWarnings("serial")
 public class GoGame implements Serializable {
@@ -50,13 +52,13 @@ public class GoGame implements Serializable {
     }
   }
 
-  public List<String> previousStates = new ArrayList<String>(0);
+  public Set<String> previousStates = new TreeSet<String>();
   public int currentPlayer = 1;
   public List<Island> islands = new ArrayList<Island>();
   public int passesInARow = 0;
   public int[] prisoners = {0, 0};
-  public int tileCols = 10;
-  public int tileRows = 10;
+  public int tileCols = 9;
+  public int tileRows = 9;
   public TreeMap<Integer, Tile> tiles;
   Map<Integer, Integer> tileState = new HashMap<Integer, Integer>();
   public Integer winner = null;
@@ -69,6 +71,7 @@ public class GoGame implements Serializable {
     tiles = game.tiles;
     tileState.putAll(game.tileState);
     islands.addAll(game.islands);
+    previousStates.addAll(game.previousStates);
     for(int i=0;i<numberOfPlayers();i++) prisoners[i] = game.prisoners[i];
     currentPlayer = game.currentPlayer;
     winner = game.winner;
@@ -189,21 +192,27 @@ public class GoGame implements Serializable {
     }
   }
 
+
+  volatile transient String hash = null;
   protected String getStateHash() {
-    StringBuffer sb = new StringBuffer();
-    for(Entry<Integer, Tile> tile : tiles.entrySet())
+    if(null == hash)
     {
-      Integer obj = tileState.get(tile.getKey());
-      if(null == obj)
+      StringBuffer sb = new StringBuffer();
+      for(Entry<Integer, Tile> tile : tiles.entrySet())
       {
-        sb.append(" ");
+        Integer obj = tileState.get(tile.getKey());
+        if(null == obj)
+        {
+          sb.append(" ");
+        }
+        else
+        {
+          sb.append(obj);
+        }
       }
-      else
-      {
-        sb.append(obj);
-      }
+      hash = sb.toString();
     }
-    return sb.toString();
+    return hash;
   }
 
   public void play(Tile tile) {
@@ -247,6 +256,7 @@ public class GoGame implements Serializable {
         }
       }
     }
+    hash = null;
     String stateHash = getStateHash();
     if(previousStates.contains(stateHash)) {
       reset(backup);
@@ -346,4 +356,32 @@ public class GoGame implements Serializable {
     return territory;
   }
 
+  @Override
+  public int hashCode() {
+    return getStateHash().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null) return false;
+    if (getClass() != obj.getClass()) return false;
+    GoGame other = (GoGame) obj;
+    if (currentPlayer != other.currentPlayer) return false;
+    if (hash == null) {
+      if (other.hash != null) return false;
+    } else if (!hash.equals(other.hash)) return false;
+    if (passesInARow != other.passesInARow) return false;
+    if (previousStates == null) {
+      if (other.previousStates != null) return false;
+    } else if (!previousStates.equals(other.previousStates)) return false;
+    if (!Arrays.equals(prisoners, other.prisoners)) return false;
+    if (tileCols != other.tileCols) return false;
+    if (tileRows != other.tileRows) return false;
+    if (winner == null) {
+      if (other.winner != null) return false;
+    } else if (!winner.equals(other.winner)) return false;
+    return true;
+  }
+  
 }

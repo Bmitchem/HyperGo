@@ -3,10 +3,11 @@ package org.sawdust.goagain.client;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
-import org.sawdust.goagain.shared.GoGame;
-import org.sawdust.goagain.shared.GoAI;
 import org.sawdust.goagain.shared.GameService;
 import org.sawdust.goagain.shared.GameServiceAsync;
+import org.sawdust.goagain.shared.GoAI;
+import org.sawdust.goagain.shared.GoAI.Contemplation;
+import org.sawdust.goagain.shared.GoGame;
 import org.sawdust.goagain.shared.Tile;
 
 import com.google.gwt.appengine.channel.client.Channel;
@@ -89,14 +90,16 @@ public class GoAgain implements EntryPoint {
       public void onClick(ClickEvent event) {
         Tile nearestTile = data.game.nearestTile(event.getX(), event.getY(), width, height);
         data.game.play(nearestTile);
-        announceWinner();
         draw();
         saveState(new AsyncCallback<Void>() {
           public void onFailure(Throwable caught) {
             loadState();
           }
           public void onSuccess(Void result) {
-            if (aiEnabled) aiAsync();
+            if(!announceWinner())
+            {
+              if (isAiEnabled()) aiAsync();
+            }
           }
         });
         
@@ -117,14 +120,17 @@ public class GoAgain implements EntryPoint {
   }
 
   protected void aiAsync() {
-    if (!aiEnabled) return;
+    if (!isAiEnabled()) return;
     final AsyncCallback<Void> aiChainHandler = new AsyncCallback<Void>() {
       public void onFailure(Throwable caught) {
         loadState();
       }
       
       public void onSuccess(Void result) {
-        if (null == data.game.winner && autoplay) aiAsync();
+        if(!announceWinner())
+        {
+          if (isAutoplay()) aiAsync();
+        }
       }
     };
     final GoAI goAI = data.ai[data.game.currentPlayer - 1];
@@ -137,22 +143,56 @@ public class GoAgain implements EntryPoint {
 
         public void onSuccess(GoGame result) {
           data.game = result;
-          announceWinner();
           draw();
           saveStateAsync(aiChainHandler);
         }
       });
     } else {
-      new Timer() {
-        @Override
-        public void run() {
-          goAI.move(data.game);
-          announceWinner();
-          draw();
-          saveState(aiChainHandler);
-        }
-      }.schedule(1);
+      localAi(aiChainHandler, goAI);
     }
+  }
+
+  final DialogBox aiDialogBox = new DialogBox();
+  final Label pct = new Label();
+  private Button demoButton;
+  private Button aiEnabledButton;
+  
+  protected void localAi(final AsyncCallback<Void> aiChainHandler, final GoAI goAI) {
+    new Timer(){
+      @Override
+      public void run() {
+        final Contemplation contemplation = goAI.newContemplation(data.game);
+        aiDialogBox.show();
+        new Timer() {
+          int thoughts=0;
+          @Override
+          public void run() {
+            if (!isAiEnabled())
+            {
+              this.cancel();
+              aiDialogBox.hide();
+            }
+            else if(thoughts > goAI.breadth)
+            {
+              contemplation.best().move(data.game);
+              announceWinner();
+              draw();
+              saveState(aiChainHandler);
+              this.cancel();
+              aiDialogBox.hide();
+            }
+            else
+            {
+              for(int j=0;j<10;j++)
+              {
+                thoughts++;
+                contemplation.think();
+                pct.setText(((int)(thoughts*100./goAI.breadth)) + "%");
+              }
+            }
+          }
+        }.scheduleRepeating(1);
+      }}.schedule(1);
   }
 
   private Widget getInfoWidget(SplitLayoutPanel layoutPanel) {
@@ -169,6 +209,17 @@ public class GoAgain implements EntryPoint {
           data.game.pass();
           draw();
           saveState();
+          saveState(new AsyncCallback<Void>() {
+            public void onFailure(Throwable caught) {
+              loadState();
+            }
+            public void onSuccess(Void result) {
+              if(!announceWinner())
+              {
+                if (isAiEnabled()) aiAsync();
+              }
+            }
+          });
         }
       });
     }
@@ -185,21 +236,24 @@ public class GoAgain implements EntryPoint {
     }
 
     {
-      final Button button = new Button("Demo " + (autoplay ? "ON" : "OFF"));
-      addControl(vpanel, button, new ClickHandler() {
+      demoButton = new Button("Demo " + (isAutoplay() ? "ON" : "OFF"));
+      addControl(vpanel, demoButton, new ClickHandler() {
         public void onClick(ClickEvent event) {
-          autoplay = !autoplay;
-          button.setText("Demo " + (autoplay ? "ON" : "OFF"));
+          setAutoplay(!isAutoplay());
         }
       });
     }
 
     {
-      final Button button = new Button("Computer Player " + (aiEnabled ? "ON" : "OFF"));
-      addControl(vpanel, button, new ClickHandler() {
+      aiEnabledButton = new Button("Computer Player " + (isAiEnabled() ? "ON" : "OFF"));
+      addControl(vpanel, aiEnabledButton, new ClickHandler() {
         public void onClick(ClickEvent event) {
-          aiEnabled = !aiEnabled;
-          button.setText("Computer Player " + (aiEnabled ? "ON" : "OFF"));
+          boolean newV = !isAiEnabled();
+          setAiEnabled(newV);
+          if(newV)
+          {
+            aiAsync();
+          }
         }
       });
     }
@@ -325,6 +379,21 @@ public class GoAgain implements EntryPoint {
     canvas.setCoordinateSpaceHeight(height);
     basePanel.add(canvas);
 
+    VerticalPanel vp = new VerticalPanel();
+    aiDialogBox.add(vp);
+    vp.add(new Label("AI is thinking"));
+    pct.setText("0%");
+    vp.add(pct);
+    Button w = new Button("Cancel");
+    w.addClickHandler(new ClickHandler() {
+      public void onClick(ClickEvent event) {
+        setAiEnabled(false);
+      }
+    });
+    vp.add(w);
+    aiDialogBox.center();
+    aiDialogBox.hide();
+    
     addHandlers();
   }
 
@@ -332,16 +401,16 @@ public class GoAgain implements EntryPoint {
     String key = Window.Location.getParameter("gameId");
     if (null == key) {
       persist = false;
-      aiEnabled = true;
       data = new GameData();
       data.game = new GoGame();
       data.ai = new GoAI[] { new GoAI(), new GoAI() };
       gameId = null;
       init();
+      setAiEnabled(true);
       draw();
     } else {
       persist = true;
-      aiEnabled = false;
+      setAiEnabled(false);
       gameId = new GameId(key, 0);
       loadState();
     };
@@ -550,5 +619,23 @@ public class GoAgain implements EntryPoint {
         saveState();
       }
     }.schedule(1);
+  }
+
+  public void setAutoplay(boolean autoplay) {
+    this.autoplay = autoplay;
+    demoButton.setText("Demo " + (isAutoplay() ? "ON" : "OFF"));
+  }
+
+  public boolean isAutoplay() {
+    return autoplay;
+  }
+
+  private void setAiEnabled(boolean aiEnabled) {
+    this.aiEnabled = aiEnabled;
+    aiEnabledButton.setText("Computer Player " + (isAiEnabled() ? "ON" : "OFF"));
+  }
+
+  private boolean isAiEnabled() {
+    return aiEnabled;
   }
 }
