@@ -88,7 +88,7 @@ public class GoAgain implements EntryPoint {
     canvas.addClickHandler(new ClickHandler() {
       public void onClick(ClickEvent event) {
         Tile nearestTile = data.game.nearestTile(event.getX(), event.getY(), width, height);
-        data.game.occupy(nearestTile, data.game.currentPlayer);
+        data.game.play(nearestTile);
         announceWinner();
         draw();
         saveState(new AsyncCallback<Void>() {
@@ -161,6 +161,17 @@ public class GoAgain implements EntryPoint {
     vpanel.setHeight(height + "px");
     vpanel.setSpacing(0);
     layoutPanel.addEast(vpanel, 200);
+
+    {
+      final Button button = new Button("Pass");
+      addControl(vpanel, button, new ClickHandler() {
+        public void onClick(ClickEvent event) {
+          data.game.pass();
+          draw();
+          saveState();
+        }
+      });
+    }
 
     {
       final Button button = new Button("Reset Game");

@@ -7,6 +7,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
 
 @SuppressWarnings("serial")
 public class GoGame implements Serializable {
@@ -43,16 +46,18 @@ public class GoGame implements Serializable {
 
     @Override
     public void move(GoGame board) {
-      board.occupy(tile, board.currentPlayer);
+      board.play(tile);
     }
   }
 
+  public List<String> previousStates = new ArrayList<String>(0);
   public int currentPlayer = 1;
   public List<Island> islands = new ArrayList<Island>();
-  public int[] points = {0, 0};
+  public int passesInARow = 0;
+  public int[] prisoners = {0, 0};
   public int tileCols = 10;
   public int tileRows = 10;
-  public Map<Integer, Tile> tiles;
+  public TreeMap<Integer, Tile> tiles;
   Map<Integer, Integer> tileState = new HashMap<Integer, Integer>();
   public Integer winner = null;
   
@@ -64,12 +69,30 @@ public class GoGame implements Serializable {
     tiles = game.tiles;
     tileState.putAll(game.tileState);
     islands.addAll(game.islands);
-    for(int i=0;i<points.length;i++) points[i] = game.points[i];
+    for(int i=0;i<numberOfPlayers();i++) prisoners[i] = game.prisoners[i];
     currentPlayer = game.currentPlayer;
     winner = game.winner;
   }
-  protected Map<Integer, Tile> calculateLayout() {
-    Map<Integer, Tile> _tiles = new HashMap<Integer, Tile>();
+
+  private void reset(GoGame backup) {
+    islands = backup.islands;
+    tileState = backup.tileState;
+    prisoners = backup.prisoners;
+    winner = backup.winner;
+    currentPlayer = backup.currentPlayer;
+  }
+
+  public void reset() {
+    tiles = calculateLayout();
+    previousStates.clear();
+    tileState.clear();
+    islands.clear();
+    prisoners = new int[]{0,0};
+    winner = null;
+  }
+
+  protected TreeMap<Integer, Tile> calculateLayout() {
+    TreeMap<Integer, Tile> _tiles = new TreeMap<Integer, Tile>();
     @SuppressWarnings("unchecked") final ArrayList<Tile>[][] lists = new ArrayList[tileRows][tileCols];
     for(int i=1; i<1+tileRows; i++)
     {
@@ -109,30 +132,18 @@ public class GoGame implements Serializable {
     {
       if(!tileState.containsKey(tile.idx))
       {
-        boolean isSurrounded = true;
-        boolean isLiberty = true;
-        for(Tile n : tile.neighbors())
-        {
-          Integer state = tileState.get(n.idx);
-          if(state == null)
-          {
-            isSurrounded = false;
-            isLiberty = false;
-          }
-          else if(state.equals(currentPlayer))
-          {
-            isSurrounded = false;
-          }
-          else
-          {
-            isLiberty = false;
-          }
-        }
-        if(isSurrounded) continue;
-        if(isLiberty) continue;
         list.add(new Move(tile));
       }
     }
+    list.add(new GameCommand<GoGame>(){
+      @Override
+      public void move(GoGame board) {
+        board.pass();
+      }
+      @Override
+      public String getCommandText() {
+        return "Pass";
+      }});
     return list;
   }
 
@@ -152,11 +163,11 @@ public class GoGame implements Serializable {
     double size = (width<height)?width:height;
     x /= size; y /= size;
     Tile tile = null;
-    double dist = Double.MAX_VALUE;
+    double dist = 1.;
     for(Tile t : tiles.values())
     {
-      double dx = t.x - x;
-      double dy = t.y - y;
+      double dx = (t.x - x) * tileCols;
+      double dy = (t.y - y) * tileRows;
       double d = Math.sqrt(dx*dx + dy*dy);
       if(d < dist)
       {
@@ -167,14 +178,44 @@ public class GoGame implements Serializable {
     return tile;
   }
 
-  public void occupy(Tile tile, int state) {
-    if(0 != getState(tile)) return;
-    tileState.put(tile.idx, state);
+  public void pass() {
+    if(++passesInARow >= 2)
+    {
+      decideWinner();
+    }
+    else
+    {
+      nextPlayer();
+    }
+  }
+
+  protected String getStateHash() {
+    StringBuffer sb = new StringBuffer();
+    for(Entry<Integer, Tile> tile : tiles.entrySet())
+    {
+      Integer obj = tileState.get(tile.getKey());
+      if(null == obj)
+      {
+        sb.append(" ");
+      }
+      else
+      {
+        sb.append(obj);
+      }
+    }
+    return sb.toString();
+  }
+
+  public void play(Tile tile) {
+    if(0 != getState(tile)) throw new RuntimeException("Tile occupied!");
+    passesInARow = 0;
+    GoGame backup = new GoGame(this);
+    tileState.put(tile.idx, currentPlayer);
     ArrayList<Island> possiblyDeadIslands = new ArrayList<Island>();
     HashSet<Island> adjacentIslands = new HashSet<Island>();
     for(Tile t : tile.neighbors())
     {
-      if(getState(t) == state)
+      if(getState(t) == currentPlayer)
       {
         adjacentIslands.add(getIsland(t));
       }
@@ -200,32 +241,109 @@ public class GoGame implements Serializable {
           int capturedSide = getState(t);
           if(0 != capturedSide)
           {
-            points[capturedSide-1]--;
+            prisoners[capturedSide-1]++;
             tileState.remove(t.idx);
           }
         }
       }
     }
-    if(0 == getMoves().size())
-    {
-      int winningPoints = Integer.MIN_VALUE;
-      for(int i=0;i<points.length;i++)
-      {
-        if(points[i] > winningPoints)
-        {
-          winner = i;
-          winningPoints = points[i];
-        }
-      }
+    String stateHash = getStateHash();
+    if(previousStates.contains(stateHash)) {
+      reset(backup);
+      throw new RuntimeException("Move Violates Ko");
     }
+    else
+    {
+      previousStates.add(stateHash);
+    }
+    nextPlayer();
+  }
+
+  protected void nextPlayer() {
     if(++currentPlayer == 3) currentPlayer = 1;
   }
 
-  public void reset() {
-    tiles = calculateLayout();
-    tileState.clear();
-    islands.clear();
-    winner = null;
+  protected void decideWinner() {
+    int winningPoints = Integer.MIN_VALUE;
+    for(int i=0;i<numberOfPlayers();i++)
+    {
+      int score = getScore(i+1);
+      if(score > winningPoints)
+      {
+        winner = i;
+        winningPoints = score;
+      }
+    }
+  }
+
+  public int numberOfPlayers() {
+    return prisoners.length;
+  }
+
+  public int getScore(int player) {
+    return getTerritory(player) + prisoners[player==1?1:0];
+  }
+
+  public int getTerritory(int player) {
+    int territory = 0;
+    for(Entry<Integer, Integer> t : tileState.entrySet())
+    {
+      Integer value = t.getValue();
+      if(value.equals(player))
+      {
+        territory++;
+      }
+    }
+    
+    Set<Tile> remainingEmptySpace = new HashSet<Tile>(tiles.values());
+    for(int i : tileState.keySet())
+    {
+      remainingEmptySpace.remove(tiles.get(i));
+    }
+    while(remainingEmptySpace.size() > 0)
+    {
+      Set<Tile> currentIsland = new HashSet<Tile>();
+      Set<Tile> newIsland = new HashSet<Tile>();
+      newIsland.add(remainingEmptySpace.iterator().next());
+      boolean touchesSelf = false;
+      boolean touchesOther = false;
+      while(newIsland.size() > 0)
+      {
+        Set<Tile> newBorder = new HashSet<Tile>();
+        for(Tile t : newIsland)
+        {
+          newBorder.addAll(t.neighbors());
+        }
+        currentIsland.addAll(newIsland);
+        newBorder.removeAll(currentIsland);
+        newIsland.clear();
+        for(Tile n : newBorder)
+        {
+          Integer state = tileState.get(n.idx);
+          if(null != state)
+          {
+            if(state.equals(player))
+            {
+              touchesSelf = true;
+            }
+            else
+            {
+              touchesOther = true;
+            }
+          }
+          else
+          {
+            newIsland.add(n);
+          }
+        }
+      }
+      if(touchesSelf && !touchesOther)
+      {
+        territory += currentIsland.size();
+      }
+      remainingEmptySpace.removeAll(currentIsland);
+    }
+    return territory;
   }
 
 }

@@ -26,7 +26,7 @@ public class GoBoard {
   
   public GoBoard() {
     super();
-    info.setVisibleLines(4);
+    info.setVisibleLines(7);
     info.setWidth("100%");
   }
 
@@ -106,13 +106,31 @@ public class GoBoard {
     {
       sb.append("White's Turn");
     }
+
     sb.append("\n");
-    sb.append("Black Points: ");
-    sb.append(game.points[0]);
+    sb.append("Black Prisoners: ");
+    sb.append(game.prisoners[0]);
     sb.append("\n");
-    sb.append("White Points: ");
-    sb.append(game.points[1]);
+    sb.append("White Prisoners: ");
+    sb.append(game.prisoners[1]);
+
+    int territoryBlack = game.getTerritory(1);
+    int territoryWhite = game.getTerritory(2);
+    
     sb.append("\n");
+    sb.append("Black Territory: ");
+    sb.append(territoryBlack);
+    sb.append("\n");
+    sb.append("White Territory: ");
+    sb.append(territoryWhite);
+
+    sb.append("\n");
+    sb.append("Black Score: ");
+    sb.append(territoryBlack + game.prisoners[1]);
+    sb.append("\n");
+    sb.append("White Score: ");
+    sb.append(territoryWhite + game.prisoners[0]);
+
     ((TextArea)getInfo()).setText(sb.toString());
   }
   
