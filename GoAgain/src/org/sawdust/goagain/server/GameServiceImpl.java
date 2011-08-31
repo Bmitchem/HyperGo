@@ -10,14 +10,14 @@ import javax.jdo.PersistenceManagerFactory;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
+import org.sawdust.goagain.shared.Ai;
+import org.sawdust.goagain.shared.IterativeResult;
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
-import org.sawdust.goagain.shared.GoAI;
-import org.sawdust.goagain.shared.GoAI.Contemplation;
-import org.sawdust.goagain.shared.GoGame;
 import org.sawdust.goagain.shared.GameService;
+import org.sawdust.goagain.shared.GoGame;
 
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;
@@ -64,10 +64,11 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
     });
   }
 
-  public GoGame move(GoGame game, GoAI goAI) {
+  public GoGame move(GoGame game, Ai<GoGame> goAI) {
     long endTime = System.currentTimeMillis() + 30 * 1000;
-    Contemplation contemplation = goAI.newContemplation(game);
-    for(int i=0;i<goAI.breadth/10;i++)
+    IterativeResult<GoGame> contemplation = goAI.newContemplation(game);
+    //for(int i=0;i<goAI.breadth/10;i++)
+    while(true)
     {
       if(endTime < System.currentTimeMillis()) break;
       for(int j=0;j<10;j++)

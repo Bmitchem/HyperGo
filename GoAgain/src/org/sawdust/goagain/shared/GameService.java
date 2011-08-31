@@ -8,7 +8,7 @@ import com.google.gwt.user.client.rpc.RemoteServiceRelativePath;
  */
 @RemoteServiceRelativePath("greet")
 public interface GameService extends RemoteService {
-  GoGame move(GoGame name, GoAI goAI);
+  GoGame move(GoGame name, Ai<GoGame> goAI);
   GameId newGame(GameData data);
   GameId saveGame(GameId key, GameData name);
   GameRecord getGame(GameId key);

@@ -1,12 +1,12 @@
 package org.sawdust.goagain.client;
 
+import org.sawdust.goagain.shared.IterativeResult;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
 import org.sawdust.goagain.shared.GameService;
 import org.sawdust.goagain.shared.GameServiceAsync;
 import org.sawdust.goagain.shared.GoAI;
-import org.sawdust.goagain.shared.GoAI.Contemplation;
 import org.sawdust.goagain.shared.GoGame;
 import org.sawdust.goagain.shared.Tile;
 
@@ -161,10 +161,10 @@ public class GoAgain implements EntryPoint {
     new Timer(){
       @Override
       public void run() {
-        final Contemplation contemplation = goAI.newContemplation(data.game);
+        final IterativeResult<GoGame> contemplation = goAI.newContemplation(data.game);
         aiDialogBox.show();
         new Timer() {
-          int thoughts=0;
+          double progress = 0;
           @Override
           public void run() {
             if (!isAiEnabled())
@@ -172,7 +172,7 @@ public class GoAgain implements EntryPoint {
               this.cancel();
               aiDialogBox.hide();
             }
-            else if(thoughts > goAI.breadth)
+            else if(progress >= 1.)
             {
               contemplation.best().move(data.game);
               announceWinner();
@@ -185,10 +185,9 @@ public class GoAgain implements EntryPoint {
             {
               for(int j=0;j<10;j++)
               {
-                thoughts++;
-                contemplation.think();
-                pct.setText(((int)(thoughts*100./goAI.breadth)) + "%");
+                progress = contemplation.think();
               }
+              pct.setText(((int)(progress*100.)) + "%");
             }
           }
         }.scheduleRepeating(1);
