@@ -14,10 +14,10 @@ public class GoMoveIntuition implements MoveFitness<GoGame> {
       int enemyCount = 0;
       for(Tile t : move.tile.neighbors())
       {
-        Integer state = game.tileState.get(t.idx);
-        if(null != state)
+        int state = game.getState(t);
+        if(0 != state)
         {
-          if(state.equals(playerIdx))
+          if(state == playerIdx)
           {
             freindlyCount++;
           }

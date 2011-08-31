@@ -60,7 +60,6 @@ public class GoGame implements Serializable {
   public int tileCols = 9;
   public int tileRows = 9;
   public TreeMap<Integer, Tile> tiles;
-  Map<Integer, Integer> tileState = new HashMap<Integer, Integer>();
   public Integer winner = null;
   
   public GoGame() {
@@ -69,7 +68,6 @@ public class GoGame implements Serializable {
 
   public GoGame(GoGame game) {
     tiles = game.tiles;
-    tileState.putAll(game.tileState);
     islands.addAll(game.islands);
     previousStates.addAll(game.previousStates);
     for(int i=0;i<numberOfPlayers();i++) prisoners[i] = game.prisoners[i];
@@ -79,7 +77,6 @@ public class GoGame implements Serializable {
 
   private void reset(GoGame backup) {
     islands = backup.islands;
-    tileState = backup.tileState;
     prisoners = backup.prisoners;
     winner = backup.winner;
     currentPlayer = backup.currentPlayer;
@@ -88,7 +85,6 @@ public class GoGame implements Serializable {
   public void reset() {
     tiles = calculateLayout();
     previousStates.clear();
-    tileState.clear();
     islands.clear();
     prisoners = new int[]{0,0};
     winner = null;
@@ -133,7 +129,7 @@ public class GoGame implements Serializable {
     ArrayList<GameCommand<GoGame>> list = new ArrayList<GameCommand<GoGame>>();
     for(final Tile tile : tiles.values())
     {
-      if(!tileState.containsKey(tile.idx))
+      if(0 == getState(tile))
       {
         list.add(new Move(tile));
       }
@@ -152,14 +148,15 @@ public class GoGame implements Serializable {
 
   public int getState(Tile tile) {
     if(null == tile) return -1;
-    if(null == tileState) return -1;
-    if(!tileState.containsKey(tile.idx)) return 0;
-    Integer integer = tileState.get(tile.idx);
-    return (null==integer)?0:integer;
+    for(Island i : islands)
+    {
+      if(i.contains(tile)) return i.getPlayer();
+    }
+    return 0;
   }
 
   protected int getTileId(final int i, final int j) {
-    return i + (j*tileCols);
+    return (i-1) + ((j-1)*tileCols);
   }
 
   public Tile nearestTile(double x, double y, int width, int height) {
@@ -197,11 +194,13 @@ public class GoGame implements Serializable {
   protected String getStateHash() {
     if(null == hash)
     {
+      int idx = 0;
       StringBuffer sb = new StringBuffer();
       for(Entry<Integer, Tile> tile : tiles.entrySet())
       {
-        Integer obj = tileState.get(tile.getKey());
-        if(null == obj)
+        assert(tile.getKey().equals(idx++));
+        int obj = getState(tile.getValue());
+        if(0 == obj)
         {
           sb.append(" ");
         }
@@ -219,7 +218,6 @@ public class GoGame implements Serializable {
     if(0 != getState(tile)) throw new RuntimeException("Tile occupied!");
     passesInARow = 0;
     GoGame backup = new GoGame(this);
-    tileState.put(tile.idx, currentPlayer);
     ArrayList<Island> possiblyDeadIslands = new ArrayList<Island>();
     HashSet<Island> adjacentIslands = new HashSet<Island>();
     for(Tile t : tile.neighbors())
@@ -237,9 +235,16 @@ public class GoGame implements Serializable {
     {
       islands.remove(island);
     }
-    Island e = new Island(this, tile, adjacentIslands.toArray(new Island[]{}));
-    islands.add(e);
-    possiblyDeadIslands.add(e);
+    Island newIsland;
+    if (adjacentIslands.size() > 0) {
+      newIsland = new Island(this, tile, adjacentIslands.toArray(new Island[] {}));
+    }
+    else
+    {
+      newIsland = new Island(this, tile, currentPlayer);
+    }
+    islands.add(newIsland);
+    possiblyDeadIslands.add(newIsland);
     for(Island island : possiblyDeadIslands)
     {
       if(island.isDead(this))
@@ -251,7 +256,6 @@ public class GoGame implements Serializable {
           if(0 != capturedSide)
           {
             prisoners[capturedSide-1]++;
-            tileState.remove(t.idx);
           }
         }
       }
@@ -296,19 +300,18 @@ public class GoGame implements Serializable {
 
   public int getTerritory(int player) {
     int territory = 0;
-    for(Entry<Integer, Integer> t : tileState.entrySet())
+    for(Island island : islands)
     {
-      Integer value = t.getValue();
-      if(value.equals(player))
+      if(island.getPlayer() == player)
       {
-        territory++;
+        territory += island.getSize();
       }
     }
     
     Set<Tile> remainingEmptySpace = new HashSet<Tile>(tiles.values());
-    for(int i : tileState.keySet())
+    for(Island island : islands)
     {
-      remainingEmptySpace.remove(tiles.get(i));
+      remainingEmptySpace.removeAll(island.getPositions());
     }
     while(remainingEmptySpace.size() > 0)
     {
@@ -329,10 +332,10 @@ public class GoGame implements Serializable {
         newIsland.clear();
         for(Tile n : newBorder)
         {
-          Integer state = tileState.get(n.idx);
-          if(null != state)
+          int state = getState(n);
+          if(0 != state)
           {
-            if(state.equals(player))
+            if(state == player)
             {
               touchesSelf = true;
             }

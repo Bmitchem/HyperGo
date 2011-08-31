@@ -16,8 +16,15 @@ public class Island implements Serializable
       super();
     }
 
+    public Island(GoGame board, Tile tile, int player) {
+      this.state = player;
+      positions.add(tile);
+      Collection<Tile> neighbors = tile.neighbors();
+      if(null != neighbors) perimiter.addAll(neighbors);
+    }
+
     public Island(GoGame board, Tile tile, Island... array) {
-      this.state = board.getState(tile);
+      this.state = array[0].getPlayer();
       positions.add(tile);
       Collection<Tile> neighbors = tile.neighbors();
       if(null != neighbors) perimiter.addAll(neighbors);

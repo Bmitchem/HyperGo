@@ -14,27 +14,32 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
   double totalProgress = 0;
 
   private int[] breadth;
+  private long breadthProduct = 1;
   public class Frame
   {
     final GoGame game;
     final Iterator<GameCommand<GoGame>> moves;
     
+    GameCommand<GoGame> thisMove = null;
     GameCommand<GoGame> bestMove = null;
     double bestFitness = Integer.MIN_VALUE;
     GoGame bestEndGame = null;
 
-    public final double progress;
+    public final long denominator;
     private int counter;
     private int width;
     
-    public Frame(GoGame game, double progress) {
+    public Frame(GoGame game, long denominator) {
+      this(game, denominator, breadth[stack.size()]);
+    }
+      public Frame(GoGame game, long denominator, int b) {
+      this.width = b;
       this.game = game;
       this.counter = 0;
       Collection<GameCommand<GoGame>> nextMoves = intuition(game);
-      this.width = breadth[stack.size()];
       if(this.width > nextMoves.size()) this.width = nextMoves.size();
       this.moves = nextMoves.iterator();
-      this.progress = progress;
+      this.denominator = denominator;
     }
   }
   final Stack<Frame> stack = new Stack<Frame>();
@@ -42,7 +47,8 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
   
   public TreeSearchContemplation(GoGame game, MoveFitness<GoGame> intuition, GameFitness<GoGame> judgement, int... breadth) {
     this.breadth = breadth;
-    this.stack.push(new Frame(game, 1.0));
+    for(int b : breadth) breadthProduct *= b;
+    this.stack.push(new Frame(game, 1));
     this.intuition = intuition;
     this.judgement = judgement;
   }
@@ -51,24 +57,28 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
     Frame frame = stack.peek();
     if(frame.moves.hasNext() && frame.counter++ < frame.width)
     {
-      GameCommand<GoGame> thisMove = frame.moves.next();
+      frame.thisMove = frame.moves.next();
       GoGame hypotheticalGame = new GoGame(frame.game);
       try {
-        thisMove.move(hypotheticalGame);
+        frame.thisMove.move(hypotheticalGame);
         if (stack.size() < breadth.length)
         {
-          this.stack.push(new Frame(hypotheticalGame, frame.progress / frame.width));
+          this.stack.push(new Frame(hypotheticalGame, frame.denominator * frame.width));
+        }
+        else if (frame.denominator * frame.width * breadth[breadth.length-1] < breadthProduct)
+        {
+          this.stack.push(new Frame(hypotheticalGame, frame.denominator * frame.width, breadth[breadth.length-1]));
         }
         else
         {
           double fitness = judgement.gameFitness(hypotheticalGame, frame.game.currentPlayer);
           if (fitness > frame.bestFitness)
           {
-            frame.bestMove = thisMove;
+            frame.bestMove = frame.thisMove;
             frame.bestFitness = fitness;
             frame.bestEndGame = hypotheticalGame;
           }
-          totalProgress += frame.progress / frame.width;
+          totalProgress += 1. / (frame.width*frame.denominator);
         }
       } catch (Exception e) {
       }
@@ -80,8 +90,8 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
       double fitness = judgement.gameFitness(frame.bestEndGame, parent.game.currentPlayer);
       if (fitness > parent.bestFitness)
       {
-        parent.bestMove = frame.bestMove;
-        parent.bestFitness = frame.bestFitness;
+        parent.bestMove = parent.thisMove;
+        parent.bestFitness = fitness;
         parent.bestEndGame = frame.bestEndGame;
       }
     }

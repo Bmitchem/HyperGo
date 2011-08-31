@@ -1,5 +1,6 @@
 package org.sawdust.goagain.client;
 
+import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.IterativeResult;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
@@ -130,7 +131,8 @@ public class GoAgain implements EntryPoint {
       public void onSuccess(Void result) {
         if(!announceWinner())
         {
-          if (isAutoplay()) aiAsync();
+          draw();
+          if (isAutoplay() && !announceWinner()) aiAsync();
         }
       }
     };
@@ -149,7 +151,6 @@ public class GoAgain implements EntryPoint {
           if(isAiEnabled())
           {
             data.game = result;
-            draw();
             saveStateAsync(aiChainHandler);
             aiDialogBox.hide();
           }
@@ -183,24 +184,21 @@ public class GoAgain implements EntryPoint {
             else if(progress >= 1.)
             {
               try {
-                contemplation.best().move(data.game);
-                announceWinner();
-                draw();
-                saveState(aiChainHandler);
+                GameCommand<GoGame> best = contemplation.best();
+                if(null != best)
+                {
+                  best.move(data.game);
+                  saveState(aiChainHandler);
+                }
+                else
+                {
+                  aiChainHandler.onFailure(null);
+                  showError();
+                }
               } catch (Exception e) {
                 e.printStackTrace(System.err);
-                final DialogBox dialogBox = new DialogBox();
-                VerticalPanel vp = new VerticalPanel();
-                dialogBox.add(vp);
-                vp.add(new Label("AI gave an invalid move!"));
-                final Button b = new Button("OK");
-                b.addClickHandler(new ClickHandler() {
-                  
-                  public void onClick(ClickEvent event) {
-                    dialogBox.hide();
-                  }
-                });
-                vp.add(b);
+                showError();
+                aiChainHandler.onFailure(e);
               }
               this.cancel();
               aiDialogBox.hide();
@@ -213,6 +211,21 @@ public class GoAgain implements EntryPoint {
               }
               pct.setText(((int)(progress*100.)) + "%");
             }
+          }
+
+          protected void showError() {
+            final DialogBox dialogBox = new DialogBox();
+            VerticalPanel vp = new VerticalPanel();
+            dialogBox.add(vp);
+            vp.add(new Label("AI gave an invalid move!"));
+            final Button b = new Button("OK");
+            b.addClickHandler(new ClickHandler() {
+              
+              public void onClick(ClickEvent event) {
+                dialogBox.hide();
+              }
+            });
+            vp.add(b);
           }
         }.scheduleRepeating(1);
       }}.schedule(1);
