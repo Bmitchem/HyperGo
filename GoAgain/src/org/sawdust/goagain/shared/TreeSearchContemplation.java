@@ -3,33 +3,90 @@ package org.sawdust.goagain.shared;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Stack;
 import java.util.TreeSet;
 
 public class TreeSearchContemplation implements IterativeResult<GoGame> {
 
-  final Stack<GoGame> games = new Stack<GoGame>();
-  private final int depth;
   private final int breadth;
   private final MoveFitness<GoGame> intuition;
   private final GameFitness<GoGame> judgement;
+  double totalProgress = 0;
+
+  public class Frame
+  {
+    final GoGame game;
+    final Iterator<GameCommand<GoGame>> moves;
+    final int depth;
+    GameCommand<GoGame> bestMove = null;
+    double bestFitness = Integer.MIN_VALUE;
+    public final double progress;
+    public int moveCount;
+    
+    public Frame(GoGame game, int depth, double progress) {
+      this.game = game;
+      this.depth = depth;
+      Collection<GameCommand<GoGame>> nextMoves = intuition(game);
+      this.moves = nextMoves.iterator();
+      this.moveCount = nextMoves.size();
+      this.progress = progress;
+    }
+  }
+  final Stack<Frame> stack = new Stack<Frame>();
+  
   
   public TreeSearchContemplation(GoGame game, int depth, int breadth, MoveFitness<GoGame> intuition, GameFitness<GoGame> judgement) {
-    this.games.push(game);
-    this.depth = depth;
+    this.stack.push(new Frame(game, depth, 1.0));
     this.breadth = breadth;
     this.intuition = intuition;
     this.judgement = judgement;
-    this.best = move(new GoGame(games.peek()), this.depth);
   }
 
   public double think() {
-    return 1.0;
+    Frame frame = stack.peek();
+    if(frame.moves.hasNext())
+    {
+      GameCommand<GoGame> thisMove = frame.moves.next();
+      GoGame hypotheticalGame = new GoGame(frame.game);
+      try {
+        thisMove.move(hypotheticalGame);
+        if (frame.depth > 1)
+        {
+          this.stack.push(new Frame(hypotheticalGame, frame.depth - 1, frame.progress / frame.moveCount));
+        }
+        else
+        {
+          double fitness = judgement.gameFitness(hypotheticalGame, frame.game.currentPlayer);
+          if (fitness > frame.bestFitness)
+          {
+            frame.bestMove = thisMove;
+            frame.bestFitness = fitness;
+          }
+        }
+      } catch (Exception e) {
+      }
+    }
+    else if(stack.size() > 1)
+    {
+      stack.pop();
+      Frame parent = stack.peek();
+      if (frame.bestFitness > parent.bestFitness)
+      {
+        parent.bestMove = frame.bestMove;
+        parent.bestFitness = frame.bestFitness;
+      }
+      totalProgress += frame.progress;
+    }
+    else
+    {
+      return 1;
+    }
+    return totalProgress;
   }
 
-  private GameCommand<GoGame> best; // HACK
   public GameCommand<GoGame> best() {
-    return best;
+    return stack.peek().bestMove;
   }
 
   protected GameCommand<GoGame> move(final GoGame game, int d)
