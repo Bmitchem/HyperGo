@@ -9,51 +9,55 @@ import java.util.TreeSet;
 
 public class TreeSearchContemplation implements IterativeResult<GoGame> {
 
-  private final int breadth;
   private final MoveFitness<GoGame> intuition;
   private final GameFitness<GoGame> judgement;
   double totalProgress = 0;
 
+  private int[] breadth;
   public class Frame
   {
     final GoGame game;
     final Iterator<GameCommand<GoGame>> moves;
-    final int depth;
+    
     GameCommand<GoGame> bestMove = null;
     double bestFitness = Integer.MIN_VALUE;
+    GoGame bestEndGame = null;
+
     public final double progress;
-    public int moveCount;
+    private int counter;
+    private int width;
     
-    public Frame(GoGame game, int depth, double progress) {
+    public Frame(GoGame game, double progress) {
       this.game = game;
-      this.depth = depth;
+      this.counter = 0;
       Collection<GameCommand<GoGame>> nextMoves = intuition(game);
+      this.width = breadth[stack.size()];
+      if(this.width > nextMoves.size()) this.width = nextMoves.size();
       this.moves = nextMoves.iterator();
-      this.moveCount = nextMoves.size();
       this.progress = progress;
     }
   }
   final Stack<Frame> stack = new Stack<Frame>();
   
   
-  public TreeSearchContemplation(GoGame game, int depth, int breadth, MoveFitness<GoGame> intuition, GameFitness<GoGame> judgement) {
-    this.stack.push(new Frame(game, depth, 1.0));
+  public TreeSearchContemplation(GoGame game, MoveFitness<GoGame> intuition, GameFitness<GoGame> judgement, int... breadth) {
     this.breadth = breadth;
+    this.stack.push(new Frame(game, 1.0));
     this.intuition = intuition;
     this.judgement = judgement;
   }
 
   public double think() {
     Frame frame = stack.peek();
-    if(frame.moves.hasNext())
+    if(frame.moves.hasNext() && frame.counter++ < frame.width)
     {
       GameCommand<GoGame> thisMove = frame.moves.next();
       GoGame hypotheticalGame = new GoGame(frame.game);
       try {
         thisMove.move(hypotheticalGame);
-        if (frame.depth > 1)
+        if (stack.size() < breadth.length)
         {
-          this.stack.push(new Frame(hypotheticalGame, frame.depth - 1, frame.progress / frame.moveCount));
+          this.stack.push(new Frame(hypotheticalGame, frame.progress / frame.width));
         }
         else
         {
@@ -62,7 +66,9 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
           {
             frame.bestMove = thisMove;
             frame.bestFitness = fitness;
+            frame.bestEndGame = hypotheticalGame;
           }
+          totalProgress += frame.progress / frame.width;
         }
       } catch (Exception e) {
       }
@@ -71,12 +77,13 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
     {
       stack.pop();
       Frame parent = stack.peek();
-      if (frame.bestFitness > parent.bestFitness)
+      double fitness = judgement.gameFitness(frame.bestEndGame, parent.game.currentPlayer);
+      if (fitness > parent.bestFitness)
       {
         parent.bestMove = frame.bestMove;
         parent.bestFitness = frame.bestFitness;
+        parent.bestEndGame = frame.bestEndGame;
       }
-      totalProgress += frame.progress;
     }
     else
     {
@@ -86,37 +93,11 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
   }
 
   public GameCommand<GoGame> best() {
-    return stack.peek().bestMove;
-  }
-
-  protected GameCommand<GoGame> move(final GoGame game, int d)
-  {
-      Collection<GameCommand<GoGame>> moves = intuition(game);
-      GameCommand<GoGame> bestMove = null;
-      double bestFitness = Integer.MIN_VALUE;
-      for (GameCommand<GoGame> thisMove : moves)
-      {
-        GoGame hypotheticalGame = new GoGame(game);
-        try {
-          thisMove.move(hypotheticalGame);
-          if (d > 1)
-          {
-            move(hypotheticalGame, d - 1);
-          }
-          double fitness = judgement.gameFitness(hypotheticalGame, game.currentPlayer);
-          if (fitness > bestFitness)
-          {
-            bestMove = thisMove;
-            bestFitness = fitness;
-          }
-        } catch (Exception e) {
-        }
-      }
-      if (null != bestMove)
-      {
-          bestMove.move(game);
-      }
-      return bestMove;
+    for(Frame f : stack)
+    {
+      if(null != f.bestMove) return f.bestMove;
+    }
+    return null;
   }
 
   protected Collection<GameCommand<GoGame>> intuition(final GoGame game) {

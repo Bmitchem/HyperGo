@@ -8,6 +8,7 @@ import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.IntegerBox;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
@@ -19,26 +20,12 @@ public class GoAiConfig extends Widget {
     {
       HorizontalPanel panel = new HorizontalPanel();
       panel.add(new Label("Depth: "));
-      IntegerBox v = new IntegerBox();
+      TextBox v = new TextBox();
       v.setValue(ai.depth);
       panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
+      v.addValueChangeHandler(new ValueChangeHandler<String>() {
+        public void onValueChange(ValueChangeEvent<String> event) {
           ai.depth = event.getValue();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-    
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Bredth: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(ai.breadth);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          ai.breadth = event.getValue();
         }
       });
       verticalPanel.add(panel);

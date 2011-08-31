@@ -8,10 +8,9 @@ public class GoAI implements Ai<GoGame> {
   public static boolean isServer = false;
   public boolean useServer = false;
   
-  public int depth = 2;
+  public String depth = "50 50";
   public MoveFitness<GoGame> intuition = new GoMoveIntuition();
   public GameFitness<GoGame> judgement = new GoGameJudgement();
-  public int breadth = 1000;
   
   public static <T extends Comparable<T>> T floorKey(TreeMap<T, ?> commandSpace, T d) {
     T last = null;
@@ -24,8 +23,10 @@ public class GoAI implements Ai<GoGame> {
   }
 
   public IterativeResult<GoGame> newContemplation(GoGame game) {
-    return new TreeSearchContemplation(game, depth, breadth, intuition, judgement);
-    //return new MonteCarloContemplation(game, depth, breadth, intuition, judgement);
+    String[] split = depth.split(" |,");
+    int[] treeWidth = new int[split.length];
+    for(int i=0;i<split.length;i++) treeWidth[i] = Integer.parseInt(split[i]);
+    return new TreeSearchContemplation(game, intuition, judgement, treeWidth);
   }
 
 }

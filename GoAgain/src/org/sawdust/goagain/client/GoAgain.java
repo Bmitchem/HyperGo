@@ -37,6 +37,7 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.SplitLayoutPanel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.user.client.ui.DialogBox.Caption;
 
 public class GoAgain implements EntryPoint {
 
@@ -135,16 +136,23 @@ public class GoAgain implements EntryPoint {
     };
     final GoAI goAI = data.ai[data.game.currentPlayer - 1];
     if (goAI.useServer && !GoAI.isServer) {
+      pct.setText("");
+      aiDialogBox.show();
       service.move(data.game, goAI, new AsyncCallback<GoGame>() {
         public void onFailure(Throwable caught) {
           caught.printStackTrace();
+          aiDialogBox.hide();
           showDialog(new Label("Server Error"), new Label(caught.getMessage()));
         }
 
         public void onSuccess(GoGame result) {
-          data.game = result;
-          draw();
-          saveStateAsync(aiChainHandler);
+          if(isAiEnabled())
+          {
+            data.game = result;
+            draw();
+            saveStateAsync(aiChainHandler);
+            aiDialogBox.hide();
+          }
         }
       });
     } else {
@@ -174,10 +182,26 @@ public class GoAgain implements EntryPoint {
             }
             else if(progress >= 1.)
             {
-              contemplation.best().move(data.game);
-              announceWinner();
-              draw();
-              saveState(aiChainHandler);
+              try {
+                contemplation.best().move(data.game);
+                announceWinner();
+                draw();
+                saveState(aiChainHandler);
+              } catch (Exception e) {
+                e.printStackTrace(System.err);
+                final DialogBox dialogBox = new DialogBox();
+                VerticalPanel vp = new VerticalPanel();
+                dialogBox.add(vp);
+                vp.add(new Label("AI gave an invalid move!"));
+                final Button b = new Button("OK");
+                b.addClickHandler(new ClickHandler() {
+                  
+                  public void onClick(ClickEvent event) {
+                    dialogBox.hide();
+                  }
+                });
+                vp.add(b);
+              }
               this.cancel();
               aiDialogBox.hide();
             }
@@ -387,6 +411,7 @@ public class GoAgain implements EntryPoint {
     w.addClickHandler(new ClickHandler() {
       public void onClick(ClickEvent event) {
         setAiEnabled(false);
+        aiDialogBox.hide();
       }
     });
     vp.add(w);
