@@ -112,24 +112,49 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
     T exe(final PersistenceManager em);
   }
 
+  public static class RowNotCurrentException extends RuntimeException
+  {
+    
+  }
+  
   public GameId saveGame(final GameId key, final GameData data) {
     final String name = key.key;
     final ArrayList<String> members = new ArrayList<String>();
-    GameId run = run(new Op<GameId>(){
-      public GameId exe(PersistenceManager em) {
-        DbRecord dbRecord = getGame(em, name);
-        GameRecord record = dbRecord.getValue();
-        if (!record.activeId.equals(key)) 
-        {
-          throw new RuntimeException("Bad version: " + record.activeId.version + " (expected " + key.version + ")");
+    GameId run = null;
+    long timeout = System.currentTimeMillis() + 20000;
+    while (null == run) {
+      try {
+        run = run(new Op<GameId>() {
+          public GameId exe(PersistenceManager em) {
+            DbRecord dbRecord = getGame(em, name);
+            GameRecord record = dbRecord.getValue();
+            if (!record.activeId.equals(key))
+            {
+              if (record.activeId.version < key.version)
+              {
+                throw new RowNotCurrentException();
+              }
+              else
+              {
+                throw new RuntimeException("Bad version: " + record.activeId.version + " (expected " + key.version + ")");
+              }
+            }
+            record.activeId = new GameId(key.key, key.version + 1);
+            record.data = data;
+            dbRecord.setValue(record);
+            members.addAll(dbRecord.getMembers());
+            return record.activeId;
+          }
+        });
+      } catch (RowNotCurrentException e) {
+        if(timeout < System.currentTimeMillis()) throw e;
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e1) {
+          throw e;
         }
-        record.activeId = new GameId(key.key, key.version + 1);
-        record.data = data;
-        dbRecord.setValue(record);
-        members.addAll(dbRecord.getMembers());
-        return record.activeId;
       }
-    });
+    }
     for(String member : members)
     {
       ChannelService channelService = ChannelServiceFactory.getChannelService();

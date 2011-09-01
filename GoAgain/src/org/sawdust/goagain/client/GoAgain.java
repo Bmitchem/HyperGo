@@ -244,7 +244,6 @@ public class GoAgain implements EntryPoint {
         public void onClick(ClickEvent event) {
           data.game.pass();
           draw();
-          saveState();
           saveState(new AsyncCallback<Void>() {
             public void onFailure(Throwable caught) {
               loadState();
@@ -447,9 +446,21 @@ public class GoAgain implements EntryPoint {
       draw();
     } else {
       persist = true;
-      setAiEnabled(false);
       gameId = new GameId(key, 0);
-      loadState();
+      loadState(new AsyncCallback<Void>() {
+        
+        public void onSuccess(Void result) {
+          setAiEnabled(false);
+        }
+        
+        public void onFailure(Throwable caught) {
+          caught.printStackTrace();
+          showDialog(
+              new Label("Error Loading Game"), 
+              new Label(caught.getMessage())
+            );
+        }
+      });
     };
   }
 
@@ -480,7 +491,7 @@ public class GoAgain implements EntryPoint {
     });
   }
 
-  boolean channelInit = false;
+  private int latestRevision;
   protected void loadState(final AsyncCallback<Void> onComplete) {
     if(!persist) {
       onComplete.onSuccess(null);
@@ -488,16 +499,39 @@ public class GoAgain implements EntryPoint {
     }
     service.getGame(gameId, new AsyncCallback<GameRecord>() {
       public void onFailure(Throwable caught) {
+        System.err.println("Get Game Failed");
         onComplete.onFailure(caught);
       }
       public void onSuccess(GameRecord result) {
-        data = result.data;
-        gameId = result.activeId;
-        init();
-        draw();
-        onComplete.onSuccess(null);
+        System.out.println("Loaded Game Version " + result.activeId.version);
+        if(latestRevision > result.activeId.version)
+        {
+          System.out.println("Retrying Load");
+          loadStateAsync();
+        }
+        else
+        {
+          data = result.data;
+          gameId = result.activeId;
+          init();
+          draw();
+          onComplete.onSuccess(null);
+        }
       }
     });
+    initSocket();
+  }
+
+  protected void initSocketAsync() {
+    new Timer(){
+      @Override
+      public void run() {
+        initSocket();
+      }}.schedule(1);
+  }
+
+  boolean channelInit = false;
+  protected void initSocket() {
     if(!channelInit)
     {
       channelInit = true;
@@ -517,6 +551,7 @@ public class GoAgain implements EntryPoint {
                       " (Channel: " + token + ")");
                   if(gameId.version < parseInt)
                   {
+                    latestRevision = parseInt;
                     loadStateAsync();
                   }
                 }
@@ -525,14 +560,18 @@ public class GoAgain implements EntryPoint {
                 }
                 public void onClose() {
                   System.out.println("Channel closed: " + token);
+                  channelInit = false;
+                  initSocketAsync();
                 }
               });
             }
           });
         }
         public void onFailure(Throwable caught) {
+          channelInit = false;
           caught.printStackTrace(System.err);
           System.err.println("Channel open failed!");
+          initSocketAsync();
         }
       });
     }
@@ -632,10 +671,12 @@ public class GoAgain implements EntryPoint {
     {
       service.saveGame(gameId, data, new AsyncCallback<GameId>() {
         public void onSuccess(GameId result) {
+          System.out.println("Saved Game Version " + result.version);
           gameId = result;
           onComplete.onSuccess(null);
         }
         public void onFailure(final Throwable caught) {
+          System.err.println("Save Game Failed");
           caught.printStackTrace();
           showDialog(new Label("Save Game Failed"), new Label(caught.getMessage())).addCloseHandler(new CloseHandler<PopupPanel>() {
             public void onClose(CloseEvent<PopupPanel> event) {
