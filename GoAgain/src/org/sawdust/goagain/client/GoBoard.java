@@ -1,16 +1,28 @@
 package org.sawdust.goagain.client;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.sawdust.goagain.shared.BoardLayout;
 import org.sawdust.goagain.shared.GoGame;
+import org.sawdust.goagain.shared.HexagonalLayout;
 import org.sawdust.goagain.shared.Island;
+import org.sawdust.goagain.shared.RectangularLayout;
 import org.sawdust.goagain.shared.Tile;
+import org.sawdust.goagain.shared.TriangularLayout;
 
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.canvas.dom.client.CssColor;
+import com.google.gwt.event.dom.client.ChangeEvent;
+import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.IntegerBox;
 import com.google.gwt.user.client.ui.Label;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -21,7 +33,9 @@ public class GoBoard {
   static final CssColor tan = CssColor.make("tan");
   static final CssColor white = CssColor.make("white");
 
+  
   double boldness = 1.;
+  boolean connectDots = true;
   private transient TextArea info = new TextArea();
   
   public GoBoard() {
@@ -31,11 +45,11 @@ public class GoBoard {
   }
 
   public void draw(GoGame game, Context2d context, double width, int height) {
-    boldness = 9. / game.tileRows;
     double size = (width<height)?width:height;
+    double boldness = this.boldness * game.layout.getScale();
     context.setFillStyle(tan);
     context.fillRect(0, 0, size, size);
-    for(Tile tile : game.tiles.values())
+    for(Tile tile : game.layout.getTiles().values())
     {
       double x1 = tile.x * size;
       double y1 = tile.y * size;
@@ -52,30 +66,33 @@ public class GoBoard {
         context.stroke();
       }
     }
-    for(Island i : game.islands)
+    if(connectDots)
     {
-      for(Tile tile : i.getPositions())
+      for(Island i : game.islands)
       {
-        double x1 = tile.x * size;
-        double y1 = tile.y * size;
-        for(Tile n : tile.neighbors())
+        for(Tile tile : i.getPositions())
         {
-          if(i.contains(n))
+          double x1 = tile.x * size;
+          double y1 = tile.y * size;
+          for(Tile n : tile.neighbors())
           {
-            double x2 = n.x * size;
-            double y2 = n.y * size;
-            context.setStrokeStyle(getColor(game.getState(tile)));
-            context.setLineWidth(size * 0.046 * boldness);
-            context.beginPath();
-            context.moveTo(x1, y1);
-            context.lineTo(x2, y2);
-            context.closePath();
-            context.stroke();
+            if(i.contains(n))
+            {
+              double x2 = n.x * size;
+              double y2 = n.y * size;
+              context.setStrokeStyle(getColor(game.getState(tile)));
+              context.setLineWidth(size * 0.046 * boldness);
+              context.beginPath();
+              context.moveTo(x1, y1);
+              context.lineTo(x2, y2);
+              context.closePath();
+              context.stroke();
+            }
           }
         }
       }
     }
-    for(Tile tile : game.tiles.values())
+    for(Tile tile : game.layout.getTiles().values())
     {
       double x1 = tile.x * size;
       double y1 = tile.y * size;
@@ -107,29 +124,32 @@ public class GoBoard {
       sb.append("White's Turn");
     }
 
-    sb.append("\n");
-    sb.append("Black Prisoners: ");
-    sb.append(game.prisoners[0]);
-    sb.append("\n");
-    sb.append("White Prisoners: ");
-    sb.append(game.prisoners[1]);
-
-    int territoryBlack = game.getTerritory(1);
-    int territoryWhite = game.getTerritory(2);
-    
-    sb.append("\n");
-    sb.append("Black Territory: ");
-    sb.append(territoryBlack);
-    sb.append("\n");
-    sb.append("White Territory: ");
-    sb.append(territoryWhite);
+    if(game.scorePrisoners)
+    {
+      sb.append("\n");
+      sb.append("Black Prisoners: ");
+      sb.append(game.prisoners[0]);
+      sb.append("\n");
+      sb.append("White Prisoners: ");
+      sb.append(game.prisoners[1]);
+      
+      int territoryBlack = game.getTerritory(1);
+      int territoryWhite = game.getTerritory(2);
+      
+      sb.append("\n");
+      sb.append("Black Territory: ");
+      sb.append(territoryBlack);
+      sb.append("\n");
+      sb.append("White Territory: ");
+      sb.append(territoryWhite);
+    }
 
     sb.append("\n");
     sb.append("Black Score: ");
-    sb.append(territoryBlack + game.prisoners[1]);
+    sb.append(game.getScore(1));
     sb.append("\n");
     sb.append("White Score: ");
-    sb.append(territoryWhite + game.prisoners[0]);
+    sb.append(game.getScore(2));
 
     ((TextArea)getInfo()).setText(sb.toString());
   }
@@ -147,16 +167,85 @@ public class GoBoard {
   
   public Widget getConfigWidget(final GoGame game) {
     VerticalPanel verticalPanel = new VerticalPanel();
+
+    {
+      CheckBox w = new CheckBox("Connect the dots");
+      w.setValue(connectDots);
+      w.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
+        
+        public void onValueChange(ValueChangeEvent<Boolean> event) {
+          connectDots = event.getValue();
+        }
+      });
+      verticalPanel.add(w);
+    }
+
+    {
+      CheckBox w = new CheckBox("Score Prisoners");
+      w.setValue(game.scorePrisoners);
+      w.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
+        
+        public void onValueChange(ValueChangeEvent<Boolean> event) {
+          game.scorePrisoners = event.getValue();
+        }
+      });
+      verticalPanel.add(w);
+    }
     
+    final ListBox w = new ListBox();
+    for(Entry<String, BoardLayout> e : BoardLayout.layouts.entrySet())
+    {
+      w.addItem(e.getKey());
+      if(game.layout == e.getValue()) 
+      {
+        w.setSelectedIndex(w.getItemCount()-1);
+      }
+    }
+    final VerticalPanel layoutConfig = new VerticalPanel();
+    w.addChangeHandler(new ChangeHandler() {
+      public void onChange(ChangeEvent event) {
+        game.layout = BoardLayout.layouts.get(w.getValue(w.getSelectedIndex()));
+        layoutConfig.clear();
+        populateLayoutConfigWidget(game, layoutConfig);
+      }
+    });
+    verticalPanel.add(w);
+    verticalPanel.add(layoutConfig);
+    populateLayoutConfigWidget(game, layoutConfig);
+    return verticalPanel;
+  }
+
+  protected void populateLayoutConfigWidget(final GoGame game, VerticalPanel layoutConfig) {
+    if(game.layout instanceof RectangularLayout)
+    {
+      rectangularLayoutConfig(game, layoutConfig);
+    }
+    else if(game.layout instanceof HexagonalLayout)
+    {
+      hexLayoutConfig(game, layoutConfig);
+    }
+    else if(game.layout instanceof TriangularLayout)
+    {
+      triangularLayoutConfig(game, layoutConfig);
+    }
+    else 
+    {
+      layoutConfig.add(new Label("Unknown layout type - cannot configure"));
+    }
+  }
+
+  protected void rectangularLayoutConfig(final GoGame game, VerticalPanel verticalPanel) {
+    final RectangularLayout layout = (RectangularLayout) game.layout;
     {
       HorizontalPanel panel = new HorizontalPanel();
       panel.add(new Label("Rows: "));
       IntegerBox v = new IntegerBox();
-      v.setValue(game.tileRows);
+      v.setValue(layout.tileRows);
       panel.add(v);
       v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
         public void onValueChange(ValueChangeEvent<Integer> event) {
-          game.tileRows = event.getValue();
+          layout.tileRows = event.getValue();
+          layout.calculateLayout();
           game.reset();
         }
       });
@@ -167,17 +256,54 @@ public class GoBoard {
       HorizontalPanel panel = new HorizontalPanel();
       panel.add(new Label("Columns: "));
       IntegerBox v = new IntegerBox();
-      v.setValue(game.tileCols);
+      v.setValue(layout.tileCols);
       panel.add(v);
       v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
         public void onValueChange(ValueChangeEvent<Integer> event) {
-          game.tileCols = event.getValue();
+          layout.tileCols = event.getValue();
+          layout.calculateLayout();
           game.reset();
         }
       });
       verticalPanel.add(panel);
     }
-    
-    return verticalPanel;
+  }
+
+  protected void hexLayoutConfig(final GoGame game, VerticalPanel verticalPanel) {
+    final HexagonalLayout layout = (HexagonalLayout) game.layout;
+    {
+      HorizontalPanel panel = new HorizontalPanel();
+      panel.add(new Label("Size: "));
+      IntegerBox v = new IntegerBox();
+      v.setValue(layout.size);
+      panel.add(v);
+      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
+        public void onValueChange(ValueChangeEvent<Integer> event) {
+          layout.size = event.getValue();
+          layout.calculateLayout();
+          game.reset();
+        }
+      });
+      verticalPanel.add(panel);
+    }
+  }
+
+  protected void triangularLayoutConfig(final GoGame game, VerticalPanel verticalPanel) {
+    final TriangularLayout layout = (TriangularLayout) game.layout;
+    {
+      HorizontalPanel panel = new HorizontalPanel();
+      panel.add(new Label("Size: "));
+      IntegerBox v = new IntegerBox();
+      v.setValue(layout.size);
+      panel.add(v);
+      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
+        public void onValueChange(ValueChangeEvent<Integer> event) {
+          layout.size = event.getValue();
+          layout.calculateLayout();
+          game.reset();
+        }
+      });
+      verticalPanel.add(panel);
+    }
   }
 }
