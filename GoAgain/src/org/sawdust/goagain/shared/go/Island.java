@@ -109,22 +109,35 @@ public class Island implements Serializable
   }
 
   public List<Island> getLiberties(GoGame game) {
-    ArrayList<Island> list = new ArrayList<Island>();
+    ArrayList<Island> liberties = new ArrayList<Island>();
     for(Island i : game.islands)
     {
       if(i.getPlayer()==0)
       {
-        boolean isThin = i.getSize() < 4;
-        if(isThin && surrounds(i))
+        if(i.thin().getSize() < 2 && surrounds(i))
         {
-          list.add(i);
+          liberties.add(i);
         }
       }
     }
-    return list;
+    return liberties;
   }
 
-  private boolean surrounds(Island i) {
+  private transient Island thin = null;
+  Island thin() {
+    if(null == thin)
+    {
+      Set<Tile> tiles = new HashSet<Tile>(getPositions());
+      for(Tile t : getPerimiter())
+      {
+        tiles.removeAll(t.neighbors());
+      }
+      thin = new Island(getPlayer(), tiles.toArray(new Tile[]{}));
+    }
+    return thin;
+  }
+
+  boolean surrounds(Island i) {
     if(i.getPerimiter().size() > getPerimiter().size()) return false;
     for(Tile t : i.getPerimiter())
     {

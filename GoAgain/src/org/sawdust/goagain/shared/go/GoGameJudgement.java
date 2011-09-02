@@ -13,16 +13,16 @@ public class GoGameJudgement implements GameFitness<GoGame> {
     int score1 = game.getScore(playerIdx);
     int score2 = game.getScore(otherIdx);
     int scoreDiff = score1 - score2;
-    double fitness = scoreDiff * 10;
+    double fitness = scoreDiff * 100;
 
     for (Island island : game.islands) {
+      if(island.getPlayer() == 0) continue;
       double bias = (playerIdx == island.getPlayer()) ? 1.0 : -1.0;
 
       // Liberty fitness
       int libertyF = island.getLiberties(game).size();
       if(libertyF > 2) libertyF = 2;
-      libertyF += 1;
-      libertyF *= 10;
+      libertyF *= 100;
       fitness += bias * libertyF * island.getPositions().size() * 10;
       
       // Freedom-level fitness
@@ -35,6 +35,10 @@ public class GoGameJudgement implements GameFitness<GoGame> {
       if(freedom == 1)
       {
         freedom = -10;
+      }
+      else if(freedom > 4)
+      {
+        freedom = 4;
       }
       fitness += bias * freedom * island.getPositions().size();
     }

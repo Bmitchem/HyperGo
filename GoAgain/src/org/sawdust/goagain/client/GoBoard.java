@@ -81,7 +81,7 @@ public class GoBoard {
             {
               double x2 = n.x * size;
               double y2 = n.y * size;
-              context.setStrokeStyle(getColor(game.getState(tile)));
+              context.setStrokeStyle(getColor(i.getPlayer()));
               context.setLineWidth(size * 0.046 * boldness);
               context.beginPath();
               context.moveTo(x1, y1);
@@ -93,26 +93,28 @@ public class GoBoard {
         }
       }
     }
-    for(Tile tile : game.layout.getTiles().values())
+    for(Island i : game.islands)
     {
-      double x1 = tile.x * size;
-      double y1 = tile.y * size;
-      int state = game.getState(tile);
-      if(0 < state)
+      for(Tile tile : i.getPositions())
       {
-        context.setFillStyle(getColor(state));
-        context.beginPath();
-        context.arc(x1, y1, size * 0.033 * boldness, 0, Math.PI * 2.0, true);
-        context.closePath();
-        context.fill();
-      }
-      else
-      {
-        context.setFillStyle(grey);
-        context.beginPath();
-        context.arc(x1, y1, size * 0.0083 * boldness, 0, Math.PI * 2.0, true);
-        context.closePath();
-        context.fill();
+        double x1 = tile.x * size;
+        double y1 = tile.y * size;
+        if(0 < i.getPlayer())
+        {
+          context.setFillStyle(getColor(i.getPlayer()));
+          context.beginPath();
+          context.arc(x1, y1, size * 0.033 * boldness, 0, Math.PI * 2.0, true);
+          context.closePath();
+          context.fill();
+        }
+        else
+        {
+          context.setFillStyle(grey);
+          context.beginPath();
+          context.arc(x1, y1, size * 0.0083 * boldness, 0, Math.PI * 2.0, true);
+          context.closePath();
+          context.fill();
+        }
       }
     }
     StringBuffer sb = new StringBuffer();

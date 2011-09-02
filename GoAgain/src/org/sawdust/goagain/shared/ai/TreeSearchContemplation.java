@@ -119,6 +119,7 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
     ArrayList<GameCommand<GoGame>> allMoves = game.getMoves();
     if(null != intuition)
     {
+      final Map<GameCommand<GoGame>,Double> fitnessCache = new HashMap<GameCommand<GoGame>,Double>();
       TreeSet<GameCommand<GoGame>> sortedMoves = new TreeSet<GameCommand<GoGame>>(new Comparator<GameCommand<GoGame>>()
           {
             public int compare(GameCommand<GoGame> o1, GameCommand<GoGame> o2)
@@ -130,8 +131,6 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
               return compare1;
             }
 
-            Map<GameCommand<GoGame>,Double> fitnessCache = new HashMap<GameCommand<GoGame>,Double>();
-            
             protected double getFitness(GameCommand<GoGame> move) {
               double fitness;
               if (!fitnessCache.containsKey(move)) {
@@ -147,7 +146,19 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
           });
       // Not allowed in GWT:
       //Collections.shuffle(m);
-      sortedMoves.addAll(allMoves);
+      for(GameCommand<GoGame> move : allMoves)
+      {
+        double fitness;
+        if (!fitnessCache.containsKey(move)) {
+          fitness = intuition.moveFitness(move, game);
+          fitnessCache.put(move, fitness);
+        }
+        else
+        {
+          fitness = fitnessCache.get(move);
+        }
+        if(fitness >= 0) sortedMoves.add(move);
+      }
       return sortedMoves;
     }
     return allMoves;

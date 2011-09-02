@@ -6,12 +6,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.sawdust.goagain.client.GoBoard;
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.boards.BoardLayout;
 
@@ -96,7 +94,7 @@ public class GoGame implements Serializable {
     islands.add(new Island(0, buildIsland(layout.getTiles().values().iterator().next()).toArray(new Tile[]{})));
   }
 
-  private Island getIsland(Tile t) {
+  Island getIsland(Tile t) {
     for(Island i : islands)
     {
       if(i.contains(t)) return i;
@@ -119,11 +117,9 @@ public class GoGame implements Serializable {
 
   public int getState(Tile tile) {
     if(null == tile) return -1;
-    for(Island i : islands)
-    {
-      if(i.contains(tile)) return i.getPlayer();
-    }
-    return -1;
+    Island island = getIsland(tile);
+    if(null == island) return 0;
+    return island.getPlayer();
   }
 
   public Tile nearestTile(double x, double y, int width, int height) {
@@ -148,7 +144,6 @@ public class GoGame implements Serializable {
     if(null == hash)
     {
       int highestInt = 0;
-      //int obj = getState(tile.getValue());
       char data[] = new char[1000];
       for(Island i : islands)
       {
@@ -170,6 +165,7 @@ public class GoGame implements Serializable {
         }
       }
       hash = new String(data, 0, highestInt+1);
+      //System.out.println("Game Hash: " + hash);
     }
     return hash;
   }
@@ -327,11 +323,6 @@ public class GoGame implements Serializable {
     return buildIsland(seed, filter);
   }
 
-  /**
-   * @param seed
-   * @param filter
-   * @return
-   */
   protected Set<Tile> buildIsland(final Tile seed, TileFilter filter) {
     Set<Tile> currentIsland = new HashSet<Tile>();
     Set<Tile> newIsland = new HashSet<Tile>();

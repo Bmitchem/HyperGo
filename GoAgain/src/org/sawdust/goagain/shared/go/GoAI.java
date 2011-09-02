@@ -14,7 +14,7 @@ public class GoAI implements Ai<GoGame> {
   public static boolean isServer = false;
   public boolean useServer = false;
   
-  public String depth = "50 20 5";
+  public String depth = "50 50";
   public MoveFitness<GoGame> intuition = new GoMoveIntuition();
   public GameFitness<GoGame> judgement = new GoGameJudgement();
   
