@@ -1,15 +1,15 @@
 package org.sawdust.goagain.client;
 
 import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.IterativeResult;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
 import org.sawdust.goagain.shared.GameService;
 import org.sawdust.goagain.shared.GameServiceAsync;
-import org.sawdust.goagain.shared.GoAI;
-import org.sawdust.goagain.shared.GoGame;
-import org.sawdust.goagain.shared.Tile;
+import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.go.GoAI;
+import org.sawdust.goagain.shared.go.GoGame;
+import org.sawdust.goagain.shared.go.Tile;
 
 import com.google.gwt.appengine.channel.client.Channel;
 import com.google.gwt.appengine.channel.client.ChannelFactory;
@@ -205,7 +205,7 @@ public class GoAgain implements EntryPoint {
             }
             else
             {
-              for(int j=0;j<10;j++)
+              for(int j=0;j<100;j++)
               {
                 progress = contemplation.think();
               }

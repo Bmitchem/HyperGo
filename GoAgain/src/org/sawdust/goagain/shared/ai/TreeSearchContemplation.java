@@ -1,11 +1,16 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.ai;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Stack;
 import java.util.TreeSet;
+
+import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.go.GoGame;
 
 public class TreeSearchContemplation implements IterativeResult<GoGame> {
 
@@ -58,7 +63,7 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
     if(frame.moves.hasNext() && frame.counter++ < frame.width)
     {
       frame.thisMove = frame.moves.next();
-      GoGame hypotheticalGame = new GoGame(frame.game);
+      GoGame hypotheticalGame = frame.game.cloneGame();
       try {
         frame.thisMove.move(hypotheticalGame);
         if (stack.size() < breadth.length)
@@ -116,14 +121,29 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
     {
       TreeSet<GameCommand<GoGame>> sortedMoves = new TreeSet<GameCommand<GoGame>>(new Comparator<GameCommand<GoGame>>()
           {
-        public int compare(GameCommand<GoGame> o1, GameCommand<GoGame> o2)
-        {
-          double v1 = intuition.moveFitness(o1, game);
-          double v2 = intuition.moveFitness(o2, game);
-          int compare1 = Double.compare(v2, v1);
-          if(0 == compare1) compare1 = o1.getCommandText().compareTo(o2.getCommandText()); 
-          return compare1;
-        }
+            public int compare(GameCommand<GoGame> o1, GameCommand<GoGame> o2)
+            {
+              double v1 = getFitness(o1);
+              double v2 = getFitness(o2);
+              int compare1 = Double.compare(v2, v1);
+              if(0 == compare1) compare1 = o1.getCommandText().compareTo(o2.getCommandText()); 
+              return compare1;
+            }
+
+            Map<GameCommand<GoGame>,Double> fitnessCache = new HashMap<GameCommand<GoGame>,Double>();
+            
+            protected double getFitness(GameCommand<GoGame> move) {
+              double fitness;
+              if (!fitnessCache.containsKey(move)) {
+                fitness = intuition.moveFitness(move, game);
+                fitnessCache.put(move, fitness);
+              }
+              else
+              {
+                fitness = fitnessCache.get(move);
+              }
+              return fitness;
+            }
           });
       // Not allowed in GWT:
       //Collections.shuffle(m);

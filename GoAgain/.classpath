@@ -6,5 +6,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="com.google.appengine.eclipse.core.GAE_CONTAINER/appengine-java-sdk-1.5.3"/>
 	<classpathentry kind="lib" path="lib/gwt-gae-channel-0.4-alpha.jar"/>
+	<classpathentry kind="lib" path="lib/gwt-transforms.jar"/>
 	<classpathentry kind="output" path="war/WEB-INF/classes"/>
 </classpath>

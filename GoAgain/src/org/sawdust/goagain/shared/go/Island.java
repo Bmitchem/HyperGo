@@ -1,8 +1,12 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.go;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 
 @SuppressWarnings("serial")
 public class Island implements Serializable
@@ -16,14 +20,11 @@ public class Island implements Serializable
       super();
     }
 
-    public Island(GoGame board, Tile tile, int player) {
-      this.state = player;
-      positions.add(tile);
-      Collection<Tile> neighbors = tile.neighbors();
-      if(null != neighbors) perimiter.addAll(neighbors);
+    public Island(Tile tile, int player) {
+      this(player, tile);
     }
 
-    public Island(GoGame board, Tile tile, Island... array) {
+    public Island(Tile tile, Island... array) {
       this.state = array[0].getPlayer();
       positions.add(tile);
       Collection<Tile> neighbors = tile.neighbors();
@@ -32,6 +33,17 @@ public class Island implements Serializable
       {
         positions.addAll(i.positions);
         perimiter.addAll(i.perimiter);
+      }
+      perimiter.removeAll(positions);
+    }
+
+    public Island(int player, Tile... tiles) {
+      this.state = player;
+      for(Tile tile : tiles)
+      {
+        positions.add(tile);
+        Collection<Tile> neighbors = tile.neighbors();
+        if(null != neighbors) perimiter.addAll(neighbors);
       }
       perimiter.removeAll(positions);
     }
@@ -92,6 +104,31 @@ public class Island implements Serializable
     for(Tile t : perimiter)
     {
       if(0 == board.getState(t)) return false;
+    }
+    return true;
+  }
+
+  public List<Island> getLiberties(GoGame game) {
+    ArrayList<Island> list = new ArrayList<Island>();
+    for(Island i : game.islands)
+    {
+      if(i.getPlayer()==0)
+      {
+        boolean isThin = i.getSize() < 4;
+        if(isThin && surrounds(i))
+        {
+          list.add(i);
+        }
+      }
+    }
+    return list;
+  }
+
+  private boolean surrounds(Island i) {
+    if(i.getPerimiter().size() > getPerimiter().size()) return false;
+    for(Tile t : i.getPerimiter())
+    {
+      if(!getPerimiter().contains(t)) return false;
     }
     return true;
   }

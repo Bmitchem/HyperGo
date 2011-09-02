@@ -1,6 +1,6 @@
 package org.sawdust.goagain.client;
 
-import org.sawdust.goagain.shared.GoAI;
+import org.sawdust.goagain.shared.go.GoAI;
 
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;

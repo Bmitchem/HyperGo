@@ -1,4 +1,6 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.ai;
+
+import org.sawdust.goagain.shared.GameCommand;
 
 
 public interface IterativeResult<T> {

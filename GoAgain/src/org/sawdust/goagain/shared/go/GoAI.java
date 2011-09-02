@@ -1,6 +1,12 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.go;
 
 import java.util.TreeMap;
+
+import org.sawdust.goagain.shared.ai.Ai;
+import org.sawdust.goagain.shared.ai.GameFitness;
+import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.ai.MoveFitness;
+import org.sawdust.goagain.shared.ai.TreeSearchContemplation;
 
 @SuppressWarnings("serial")
 public class GoAI implements Ai<GoGame> {
@@ -8,7 +14,7 @@ public class GoAI implements Ai<GoGame> {
   public static boolean isServer = false;
   public boolean useServer = false;
   
-  public String depth = "50 50";
+  public String depth = "50 20 5";
   public MoveFitness<GoGame> intuition = new GoMoveIntuition();
   public GameFitness<GoGame> judgement = new GoGameJudgement();
   

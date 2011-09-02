@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.ai;
 
 import java.io.Serializable;
 

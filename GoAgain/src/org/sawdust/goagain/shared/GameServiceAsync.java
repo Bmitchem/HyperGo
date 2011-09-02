@@ -1,5 +1,8 @@
 package org.sawdust.goagain.shared;
 
+import org.sawdust.goagain.shared.ai.Ai;
+import org.sawdust.goagain.shared.go.GoGame;
+
 import com.google.gwt.user.client.rpc.AsyncCallback;
 
 /**

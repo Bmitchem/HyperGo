@@ -10,14 +10,14 @@ import javax.jdo.PersistenceManagerFactory;
 import javax.jdo.Query;
 import javax.jdo.Transaction;
 
-import org.sawdust.goagain.shared.Ai;
-import org.sawdust.goagain.shared.IterativeResult;
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.GameData;
 import org.sawdust.goagain.shared.GameId;
 import org.sawdust.goagain.shared.GameRecord;
 import org.sawdust.goagain.shared.GameService;
-import org.sawdust.goagain.shared.GoGame;
+import org.sawdust.goagain.shared.ai.Ai;
+import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.go.GoGame;
 
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;

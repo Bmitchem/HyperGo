@@ -1,7 +1,8 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.go;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
 
 public final class GoTile extends Tile {
   private ArrayList<Tile> list;

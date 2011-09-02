@@ -1,4 +1,7 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.go;
+
+import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.ai.MoveFitness;
 
 @SuppressWarnings("serial")
 public class GoMoveIntuition implements MoveFitness<GoGame> {
@@ -27,19 +30,20 @@ public class GoMoveIntuition implements MoveFitness<GoGame> {
           }
         }
       }
-      if(freindlyCount > 2)
+      int connectivity = game.layout.connectivity;
+      if(freindlyCount > connectivity-1)
       {
-        x -= freindlyCount * 0.5;
+        x -= 10;
       }
-      else
+      else if(freindlyCount > 0)
       {
         x += freindlyCount;
       }
-      if(enemyCount > 1)
+      if(enemyCount > connectivity-1)
       {
-        x -= enemyCount;
+        x -= 10;
       }
-      else
+      else if(enemyCount > 0)
       {
         x += enemyCount;
       }

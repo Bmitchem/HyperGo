@@ -1,10 +1,14 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.ai;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.go.GoAI;
+import org.sawdust.goagain.shared.go.GoGame;
 
 public class MonteCarloContemplation implements IterativeResult<GoGame>
 {
@@ -20,7 +24,7 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
     List<GameCommand<GoGame>> commands = new ArrayList<GameCommand<GoGame>>();
 
     public Scenario(GoGame game, int depth) {
-      GoGame end = new GoGame(game);
+      GoGame end = game.cloneGame();
       int player = end.currentPlayer;
       fitness.add(judgement.gameFitness(end, player));
       for(int i=0; i<depth; i++)
@@ -72,7 +76,7 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
     public Scenario mutate(GoGame game) {
       int step = (int) (commands.size() * Math.random());
       Scenario scenario = new Scenario();
-      GoGame end = new GoGame(game);
+      GoGame end = game.cloneGame();
       int player = end.currentPlayer;
       scenario.fitness.add(judgement.gameFitness(end, player));
       for(int i=0; i<commands.size(); i++)

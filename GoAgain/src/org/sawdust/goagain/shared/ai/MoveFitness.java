@@ -1,6 +1,8 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.ai;
 
 import java.io.Serializable;
+
+import org.sawdust.goagain.shared.GameCommand;
 
 public interface MoveFitness<T> extends Serializable {
 

@@ -1,4 +1,6 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.go;
+
+import org.sawdust.goagain.shared.ai.GameFitness;
 
 @SuppressWarnings("serial")
 public class GoGameJudgement implements GameFitness<GoGame> {
@@ -11,17 +13,29 @@ public class GoGameJudgement implements GameFitness<GoGame> {
     int score1 = game.getScore(playerIdx);
     int score2 = game.getScore(otherIdx);
     int scoreDiff = score1 - score2;
-    double fitness = scoreDiff * 1000;
+    double fitness = scoreDiff * 10;
 
-    // Freedom-level fitness
     for (Island island : game.islands) {
+      double bias = (playerIdx == island.getPlayer()) ? 1.0 : -1.0;
+
+      // Liberty fitness
+      int libertyF = island.getLiberties(game).size();
+      if(libertyF > 2) libertyF = 2;
+      libertyF += 1;
+      libertyF *= 10;
+      fitness += bias * libertyF * island.getPositions().size() * 10;
+      
+      // Freedom-level fitness
       double freedom = 0;
       for (Tile t : island.getPerimiter()) {
         if (game.getState(t) == 0) {
           freedom += 1;
         }
       }
-      double bias = (playerIdx == island.getPlayer()) ? 1.0 : -1.0;
+      if(freedom == 1)
+      {
+        freedom = -10;
+      }
       fitness += bias * freedom * island.getPositions().size();
     }
 

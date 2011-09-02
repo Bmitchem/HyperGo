@@ -4,13 +4,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.sawdust.goagain.shared.BoardLayout;
-import org.sawdust.goagain.shared.GoGame;
-import org.sawdust.goagain.shared.HexagonalLayout;
-import org.sawdust.goagain.shared.Island;
-import org.sawdust.goagain.shared.RectangularLayout;
-import org.sawdust.goagain.shared.Tile;
-import org.sawdust.goagain.shared.TriangularLayout;
+import org.sawdust.goagain.shared.boards.BoardLayout;
+import org.sawdust.goagain.shared.boards.HexagonalLayout;
+import org.sawdust.goagain.shared.boards.RectangularLayout;
+import org.sawdust.goagain.shared.boards.TriangularLayout;
+import org.sawdust.goagain.shared.go.GoGame;
+import org.sawdust.goagain.shared.go.Island;
+import org.sawdust.goagain.shared.go.Tile;
 
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.canvas.dom.client.CssColor;
@@ -70,6 +70,7 @@ public class GoBoard {
     {
       for(Island i : game.islands)
       {
+        if(i.getPlayer() == 0) continue;
         for(Tile tile : i.getPositions())
         {
           double x1 = tile.x * size;

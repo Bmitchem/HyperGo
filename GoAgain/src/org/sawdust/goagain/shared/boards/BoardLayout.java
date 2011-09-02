@@ -1,9 +1,12 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.boards;
 
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
+
+import org.sawdust.goagain.shared.go.Tile;
 
 @SuppressWarnings("serial")
 public abstract class BoardLayout implements Serializable {
@@ -15,7 +18,17 @@ public abstract class BoardLayout implements Serializable {
     layouts.put("Hexagonal", new HexagonalLayout());
   }
 
+  public int connectivity;
+  
   public abstract TreeMap<Integer, Tile> getTiles();
+
+  public void assertValidIds() {
+    int idx = 0;
+    for(Entry<Integer, Tile> tile : getTiles().entrySet())
+    {
+      assert(tile.getKey().equals(idx++));
+    }
+  }
 
   public Tile nearestTile(double x, double y) {
     Tile tile = null;

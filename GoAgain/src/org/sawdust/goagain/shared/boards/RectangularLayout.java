@@ -1,7 +1,10 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.boards;
 
 import java.util.ArrayList;
 import java.util.TreeMap;
+
+import org.sawdust.goagain.shared.go.GoTile;
+import org.sawdust.goagain.shared.go.Tile;
 
 @SuppressWarnings("serial")
 public class RectangularLayout extends BoardLayout {
@@ -15,6 +18,7 @@ public class RectangularLayout extends BoardLayout {
 
   public RectangularLayout(int tileCols, int tileRows) {
     super();
+    this.connectivity = 4;
     this.tileCols = tileCols;
     this.tileRows = tileRows;
     calculateLayout();

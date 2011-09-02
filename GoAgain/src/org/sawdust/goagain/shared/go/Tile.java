@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared;
+package org.sawdust.goagain.shared.go;
 
 import java.io.Serializable;
 import java.util.Collection;
@@ -6,7 +6,7 @@ import java.util.Collection;
 @SuppressWarnings("serial")
 public abstract class Tile implements Serializable {
 
-  int idx;
+  public int idx;
   public double x;
   public double y;
 
