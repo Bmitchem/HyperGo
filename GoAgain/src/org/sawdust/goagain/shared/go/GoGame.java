@@ -3,8 +3,9 @@ package org.sawdust.goagain.shared.go;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -29,7 +30,7 @@ public class GoGame implements Serializable {
   }
 
   public static final class Move extends GameCommand<GoGame> {
-    final Tile tile;
+    public final Tile tile;
 
     public Move(Tile tile) {
       this.tile = tile;
@@ -48,9 +49,10 @@ public class GoGame implements Serializable {
 
   public BoardLayout layout = randomValue(BoardLayout.layouts);
   public Set<String> previousStates = new TreeSet<String>();
+  public Map<Integer, IslandNode> islands = new HashMap<Integer, IslandNode>();
+  
   public int currentPlayer = 1;
   public boolean scorePrisoners = true;
-  public List<Island> islands = new ArrayList<Island>();
   public int passesInARow = 0;
   public int[] prisoners = {0, 0};
   public Integer winner = null;
@@ -72,11 +74,12 @@ public class GoGame implements Serializable {
   protected GoGame(GoGame game) {
     layout = game.layout;
     layout.assertValidIds();
-    islands.addAll(game.islands);
+    islands.putAll(game.islands);
     previousStates.addAll(game.previousStates);
     for(int i=0;i<numberOfPlayers();i++) prisoners[i] = game.prisoners[i];
     currentPlayer = game.currentPlayer;
     winner = game.winner;
+    passesInARow = game.passesInARow;
   }
 
   private void reset(GoGame backup) {
@@ -91,24 +94,35 @@ public class GoGame implements Serializable {
     islands.clear();
     prisoners = new int[]{0,0};
     winner = null;
-    islands.add(new Island(0, buildIsland(layout.getTiles().values().iterator().next()).toArray(new Tile[]{})));
+    add(new IslandNode(0, new IslandGeometry(layout.getTiles().values()), null));
+    assert(isValid());
   }
 
-  Island getIsland(Tile t) {
-    for(Island i : islands)
+  private void add(IslandNode islandNode) {
+    islands.put(islandNode.getId(), islandNode);
+  }
+
+  public IslandNode getIsland(Tile t) {
+    for(IslandNode i : islands.values())
     {
-      if(i.contains(t)) return i;
+      if(i.geometry.contains(t)) return i;
     }
     return null;
   }
 
   public ArrayList<GameCommand<GoGame>> getMoves() {
     ArrayList<GameCommand<GoGame>> list = new ArrayList<GameCommand<GoGame>>();
-    for(final Tile tile : layout.getTiles().values())
+    if(null == winner)
     {
-      if(0 == getState(tile))
+      for(final IslandNode i : islands.values())
       {
-        list.add(new Move(tile));
+        if(0 == i.getPlayer())
+        {
+          for(final Tile tile : i.geometry.getPositions())
+          {
+            list.add(new Move(tile));
+          }
+        }
       }
     }
     list.add(new PassMove());
@@ -117,7 +131,7 @@ public class GoGame implements Serializable {
 
   public int getState(Tile tile) {
     if(null == tile) return -1;
-    Island island = getIsland(tile);
+    IslandNode island = getIsland(tile);
     if(null == island) return 0;
     return island.getPlayer();
   }
@@ -145,7 +159,7 @@ public class GoGame implements Serializable {
     {
       int highestInt = 0;
       char data[] = new char[1000];
-      for(Island i : islands)
+      for(IslandNode i : islands.values())
       {
         char c;
         int player = i.getPlayer();
@@ -157,7 +171,7 @@ public class GoGame implements Serializable {
         {
           c = Integer.toString(player).toCharArray()[0];
         }
-        for(Tile t : i.getPositions())
+        for(Tile t : i.geometry.getPositions())
         {
           int x = t.idx;
           if(x > highestInt) highestInt = x;
@@ -171,68 +185,96 @@ public class GoGame implements Serializable {
   }
 
   public void play(final Tile tile) {
-    Island thisIsland = getIsland(tile);
+    IslandNode thisIsland = getIsland(tile);
     if(0 != thisIsland.getPlayer()) throw new RuntimeException("Tile occupied!");
     passesInARow = 0;
     GoGame backup = this.cloneGame();
-    ArrayList<Island> possiblyDeadIslands = new ArrayList<Island>();
-    HashSet<Island> adjacentIslands = new HashSet<Island>();
-    HashSet<Island> newEmptyIslands = new HashSet<Island>();
-    HashSet<Tile> newEmptyIslandTiles = new HashSet<Tile>();
-    for(final Tile t : tile.neighbors())
+    // Split the whitespace island
+    Collection<IslandNode> splitNeighbors = thisIsland.neighbors(this);
+    Collection<IslandNode> splitIslands = new ArrayList<IslandNode>();
+    Collection<IslandGeometry> split = thisIsland.geometry.remove(tile);
+    Set<IslandGeometry> splitNeighborhood = new HashSet<IslandGeometry>(split);
+    for(IslandNode n : splitNeighbors)
     {
-      Island nisland = getIsland(t);
-      if(getState(t) == currentPlayer)
+      splitNeighborhood.add(n.geometry);
+    }
+    IslandGeometry moveGeometry = new IslandGeometry(tile);
+    splitNeighborhood.add(moveGeometry);
+    for(IslandGeometry i : split)
+    {
+      splitIslands.add(new IslandNode(0, i, splitNeighborhood));
+    }
+    IslandNode moveNode = new IslandNode(currentPlayer, moveGeometry, splitNeighborhood);
+    splitIslands.add(moveNode);
+    islands.remove(thisIsland.getId());
+    for(IslandNode i : splitIslands)
+    {
+      islands.put(i.getId(), i);
+    }
+    // Join new adjacent compatible islands
+    Collection<IslandNode> toJoin = new ArrayList<IslandNode>();
+    Collection<IslandNode> possiblyCaptured = new ArrayList<IslandNode>();
+    toJoin.add(moveNode);
+    for(IslandNode i : splitNeighbors)
+    {
+      islands.remove(i.getId());
+      IslandNode replace = i.replace(thisIsland, splitIslands);
+      islands.put(i.getId(), replace);
+      if(replace.border.containsKey(moveNode.getId()))
       {
-        adjacentIslands.add(nisland);
-      }
-      else if(0 != getState(t))
-      {
-        possiblyDeadIslands.add(nisland);
-      }
-      else if(nisland == thisIsland)
-      {
-        if(!newEmptyIslandTiles.contains(t))
+        if(i.getPlayer() == currentPlayer)
         {
-          TileFilter filter = new TileFilter(){
-            @Override
-            public boolean accept(Tile t) {
-              if(tile.equals(t)) return false;
-              if(0 != getState(t)) return false;
-              return true;
-            }
-          };
-          Set<Tile> buildIsland = buildIsland(t, filter);
-          newEmptyIslands.add(new Island(0, buildIsland.toArray(new Tile[]{})));
-          newEmptyIslandTiles.addAll(buildIsland);
+          toJoin.add(i);
+        }
+        else
+        {
+          possiblyCaptured.add(i);
         }
       }
     }
-    islands.remove(thisIsland);
-    islands.addAll(newEmptyIslands);
-    for(Island island : adjacentIslands)
+    if(1 < toJoin.size())
     {
-      islands.remove(island);
-    }
-    Island newIsland;
-    if (adjacentIslands.size() > 0) {
-      newIsland = new Island(tile, adjacentIslands.toArray(new Island[] {}));
+      Set<IslandGeometry> joinNeighbors = new HashSet<IslandGeometry>();
+      Set<Tile> joinedTiles = new HashSet<Tile>();
+      for(IslandNode i : toJoin)
+      {
+        for(IslandNode n : i.neighbors(this))
+        {
+          joinNeighbors.add(n.geometry);
+        }
+        joinedTiles.addAll(i.geometry.getPositions());
+      }
+      for(IslandNode i : toJoin)
+      {
+        joinNeighbors.remove(i.geometry);
+      }
+      IslandNode joinedIsland = new IslandNode(currentPlayer, new IslandGeometry(joinedTiles), joinNeighbors);
+      for(IslandGeometry i : joinNeighbors)
+      {
+        int id = i.getId();
+        IslandNode node = islands.get(id);
+        islands.remove(id);
+        islands.put(id, node.replace(toJoin, joinedIsland));
+      }
+      for(IslandNode i : toJoin) islands.remove(i.getId());
+      add(joinedIsland);
+      possiblyCaptured.add(joinedIsland);
     }
     else
     {
-      newIsland = new Island(tile, currentPlayer);
+      possiblyCaptured.add(moveNode);
     }
-    islands.add(newIsland);
-    possiblyDeadIslands.add(newIsland);
-    for(Island island : possiblyDeadIslands)
+    // Capture surrounded islands
+    for(IslandNode i : possiblyCaptured)
     {
-      if(island.isDead(this))
+      int id = i.getId();
+      if(islands.get(id).isDead(this))
       {
-        islands.remove(island);
-        islands.add(new Island(0, island.getPositions().toArray(new Tile[]{})));
-        prisoners[island.getPlayer()-1] += island.getPositions().size();
+        islands.remove(id);
+        islands.put(id, i.capture());
       }
     }
+    // Check if move violates Ko rule
     hash = null;
     String stateHash = getStateHash();
     if(previousStates.contains(stateHash)) {
@@ -247,7 +289,40 @@ public class GoGame implements Serializable {
   }
 
   protected void nextPlayer() {
+    assert(isValid());
     if(++currentPlayer == 3) currentPlayer = 1;
+  }
+
+  private boolean isValid() {
+    System.out.println("\nNew Island config:");
+    for(IslandNode i : islands.values())
+    {
+      System.out.println(i.toString());
+    }
+    Set<Tile> allTiles = new HashSet<Tile>(layout.getTiles().values());
+    for(IslandNode i : islands.values())
+    {
+      for(IslandNode n : i.neighbors(this))
+      {
+        if(null == n)
+        {
+          return false;
+        }
+      }
+      for(Tile t : i.geometry.positions)
+      {
+        if(!allTiles.contains(t)) 
+        {
+          return false;
+        }
+        allTiles.remove(t);
+      }
+    }
+    if(0 != allTiles.size())
+    {
+      return false;
+    }
+    return true;
   }
 
   protected void decideWinner() {
@@ -278,82 +353,43 @@ public class GoGame implements Serializable {
 
   public int getTerritory(int player) {
     int territory = 0;
-    for(Island island : islands)
+    for(IslandNode island : islands.values())
     {
       if(island.getPlayer() == player)
       {
-        territory += island.getSize();
+        territory += island.geometry.getSize();
       }
-    }
-    
-    for(Island island : islands)
-    {
-      if(island.getPlayer() == 0) 
+      else if(island.getPlayer() == 0) 
       {
-        boolean touchesSelf = false;
-        boolean touchesOther = false;
-        for(Tile n : island.getPerimiter())
+        if(isTerritory(player, island))
         {
-          int state = getState(n);
-          if(state == player)
-          {
-            touchesSelf = true;
-          }
-          else if(0 != state)
-          {
-            touchesOther = true;
-          }
-        }
-        if(touchesSelf && !touchesOther)
-        {
-          territory += island.getSize();
+          territory += island.geometry.getSize();
         }
       }
     }
     return territory;
   }
 
-  protected Set<Tile> buildIsland(final Tile seed) {
-    TileFilter filter = new TileFilter(){
-      int seedState = getState(seed);
-      @Override
-      public boolean accept(Tile tile) {
-        return seedState == getState(tile);
-      }};
-    return buildIsland(seed, filter);
-  }
-
-  protected Set<Tile> buildIsland(final Tile seed, TileFilter filter) {
-    Set<Tile> currentIsland = new HashSet<Tile>();
-    Set<Tile> newIsland = new HashSet<Tile>();
-    newIsland.add(seed);
-    Set<Tile> newBorder = new HashSet<Tile>();
-    while(newIsland.size() > 0)
+  protected boolean isTerritory(int player, IslandNode island) {
+    boolean touchesSelf = false;
+    boolean touchesOther = false;
+    // TODO: Update
+    for(Tile n : island.geometry.getPerimiter())
     {
-      currentIsland.addAll(newIsland);
-      newBorder.clear();
-      for(Tile t : newIsland)
+      int state = getState(n);
+      if(state == player)
       {
-        for(Tile n : t.neighbors())
-        {
-          if(!currentIsland.contains(n))
-          {
-            newBorder.add(n);
-          }
-        }
+        touchesSelf = true;
       }
-      newIsland.clear();
-      for(Tile n : newBorder)
+      else if(0 != state)
       {
-        if(filter.accept(n))
-        {
-          newIsland.add(n);
-        }
+        touchesOther = true;
       }
     }
-    return currentIsland;
+    boolean isTerritory = touchesSelf && !touchesOther;
+    return isTerritory;
   }
-
+  
   @Override
   public int hashCode() {
     return getStateHash().hashCode();

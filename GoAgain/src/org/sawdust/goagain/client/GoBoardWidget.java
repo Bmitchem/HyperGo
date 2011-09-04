@@ -1,7 +1,5 @@
 package org.sawdust.goagain.client;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sawdust.goagain.shared.boards.BoardLayout;
@@ -9,42 +7,79 @@ import org.sawdust.goagain.shared.boards.HexagonalLayout;
 import org.sawdust.goagain.shared.boards.RectangularLayout;
 import org.sawdust.goagain.shared.boards.TriangularLayout;
 import org.sawdust.goagain.shared.go.GoGame;
-import org.sawdust.goagain.shared.go.Island;
+import org.sawdust.goagain.shared.go.IslandNode;
 import org.sawdust.goagain.shared.go.Tile;
 
+import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.canvas.dom.client.CssColor;
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.ValueChangeEvent;
 import com.google.gwt.event.logical.shared.ValueChangeHandler;
+import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.DialogBox;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.IntegerBox;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
+import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
 
-public class GoBoard {
+public abstract class GoBoardWidget extends SimplePanel {
   static final CssColor black = CssColor.make("black");
   static final CssColor grey = CssColor.make("grey");
   static final CssColor tan = CssColor.make("tan");
   static final CssColor white = CssColor.make("white");
 
   
-  double boldness = 1.;
-  boolean connectDots = true;
-  private transient TextArea info = new TextArea();
+  private double boldness = 1.;
+  private boolean connectDots = true;
   
-  public GoBoard() {
+  private final TextArea info = new TextArea();
+  private final Canvas canvas = Canvas.createIfSupported();
+  private int height;
+  private int width;
+  private GoGame game;
+
+  public GoBoardWidget() {
+    this(null);
+  }
+  
+  public GoBoardWidget(GoGame game) {
     super();
+    
+    this.setGame(game);
+    
+    if (canvas == null) {
+      add(new Label("HTML Canvas Element not supported"));
+      return;
+    }
+    add(canvas);
+    
     info.setVisibleLines(7);
     info.setWidth("100%");
-  }
 
-  public void draw(GoGame game, Context2d context, double width, int height) {
+    canvas.addClickHandler(new ClickHandler() {
+      public void onClick(ClickEvent event) {
+        Tile nearestTile = GoBoardWidget.this.getGame().nearestTile(event.getX(), event.getY(), getWidth(), getHeight());
+        GoBoardWidget.this.getGame().play(nearestTile);
+        redraw();
+        save();
+      }
+    });
+  }
+  
+  protected abstract void save();
+
+  public void draw(Context2d context) {
+    if(null == game) return;
     double size = (width<height)?width:height;
     double boldness = this.boldness * game.layout.getScale();
     context.setFillStyle(tan);
@@ -68,16 +103,16 @@ public class GoBoard {
     }
     if(connectDots)
     {
-      for(Island i : game.islands)
+      for(IslandNode i : game.islands.values())
       {
         if(i.getPlayer() == 0) continue;
-        for(Tile tile : i.getPositions())
+        for(Tile tile : i.geometry.getPositions())
         {
           double x1 = tile.x * size;
           double y1 = tile.y * size;
           for(Tile n : tile.neighbors())
           {
-            if(i.contains(n))
+            if(i.geometry.contains(n))
             {
               double x2 = n.x * size;
               double y2 = n.y * size;
@@ -93,9 +128,9 @@ public class GoBoard {
         }
       }
     }
-    for(Island i : game.islands)
+    for(IslandNode i : game.islands.values())
     {
-      for(Tile tile : i.getPositions())
+      for(Tile tile : i.geometry.getPositions())
       {
         double x1 = tile.x * size;
         double y1 = tile.y * size;
@@ -308,5 +343,68 @@ public class GoBoard {
       });
       verticalPanel.add(panel);
     }
+  }
+
+  public void redraw() {
+    Context2d context = canvas.getContext2d();
+    context.clearRect(0, 0, getWidth(), getHeight());
+    draw(context);
+  }
+
+  public void setHeight(int height) {
+    this.height = height;
+    canvas.setHeight(height + "px");
+    canvas.setCoordinateSpaceHeight(height);
+  }
+
+  public int getHeight() {
+    return height;
+  }
+
+  public void setWidth(int width) {
+    this.width = width;
+    canvas.setCoordinateSpaceWidth(width);
+  }
+
+  public int getWidth() {
+    return width;
+  }
+
+  public void setGame(GoGame game) {
+    this.game = game;
+    redraw();
+  }
+
+  public GoGame getGame() {
+    return game;
+  }
+
+
+  protected boolean announceWinner() {
+    if (null != game.winner) {
+      final DialogBox dialogBox = new DialogBox();
+      VerticalPanel dialogVPanel = new VerticalPanel();
+      dialogBox.add(dialogVPanel);
+
+      HTML w = new HTML();
+      w.setText((game.winner == 0 ? "Black" : "White") + " Player Won!");
+      dialogVPanel.add(w);
+
+      Button close = new Button("OK");
+      dialogVPanel.add(close);
+      close.addClickHandler(new ClickHandler() {
+        public void onClick(ClickEvent event) {
+          game.reset();
+          dialogBox.hide();
+          redraw();
+          save();
+        }
+      });
+
+      dialogBox.center();
+      dialogBox.show();
+      return true;
+    }
+    return false;
   }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 
+@SuppressWarnings("serial")
 public final class GoTile extends Tile {
   private ArrayList<Tile> list;
 

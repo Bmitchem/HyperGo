@@ -7,8 +7,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.go.GoAI;
 import org.sawdust.goagain.shared.go.GoGame;
+import org.sawdust.goagain.shared.go.ai.GoAI;
 
 public class MonteCarloContemplation implements IterativeResult<GoGame>
 {

@@ -33,10 +33,7 @@ public abstract class Tile implements Serializable {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + idx;
-    return result;
+    return idx;
   }
 
   public abstract Collection<Tile> neighbors();
@@ -46,10 +43,10 @@ public abstract class Tile implements Serializable {
     StringBuilder builder = new StringBuilder();
     builder.append("Tile [idx=");
     builder.append(idx);
-    builder.append(", x=");
-    builder.append(x);
-    builder.append(", y=");
-    builder.append(y);
+//    builder.append(", x=");
+//    builder.append(x);
+//    builder.append(", y=");
+//    builder.append(y);
     builder.append("]");
     return builder.toString();
   }

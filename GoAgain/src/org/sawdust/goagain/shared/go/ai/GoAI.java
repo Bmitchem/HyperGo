@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared.go;
+package org.sawdust.goagain.shared.go.ai;
 
 import java.util.TreeMap;
 
@@ -7,6 +7,7 @@ import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.ai.MoveFitness;
 import org.sawdust.goagain.shared.ai.TreeSearchContemplation;
+import org.sawdust.goagain.shared.go.GoGame;
 
 @SuppressWarnings("serial")
 public class GoAI implements Ai<GoGame> {

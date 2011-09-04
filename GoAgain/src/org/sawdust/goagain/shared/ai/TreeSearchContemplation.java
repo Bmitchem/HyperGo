@@ -66,11 +66,11 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
       GoGame hypotheticalGame = frame.game.cloneGame();
       try {
         frame.thisMove.move(hypotheticalGame);
-        if (stack.size() < breadth.length)
+        if (frame.game.winner == null && stack.size() < breadth.length)
         {
           this.stack.push(new Frame(hypotheticalGame, frame.denominator * frame.width));
         }
-        else if (frame.denominator * frame.width * breadth[breadth.length-1] < breadthProduct)
+        else if (frame.game.winner == null && frame.denominator * frame.width * breadth[breadth.length-1] < breadthProduct)
         {
           this.stack.push(new Frame(hypotheticalGame, frame.denominator * frame.width, breadth[breadth.length-1]));
         }
