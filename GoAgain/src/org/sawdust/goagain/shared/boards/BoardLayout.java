@@ -14,8 +14,8 @@ public abstract class BoardLayout implements Serializable {
   public static final Map<String, BoardLayout> layouts = new HashMap<String, BoardLayout>();
   static {
     layouts.put("Square", new RectangularLayout());
-//    layouts.put("Triangle", new TriangularLayout());
-//    layouts.put("Hexagonal", new HexagonalLayout());
+    layouts.put("Triangle", new TriangularLayout());
+    layouts.put("Hexagonal", new HexagonalLayout());
   }
 
   public int connectivity;

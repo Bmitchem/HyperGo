@@ -30,7 +30,7 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
       for(int i=0; i<depth; i++)
       {
         GameCommand<GoGame> move = weightedRandomMove(end);
-        addMove(end, player, move);
+        end = addMove(end, player, move);
       }
     }
 
@@ -46,13 +46,14 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
       return a;
     }
 
-    protected void addMove(GoGame end, int player, GameCommand<GoGame> move) {
-      move.move(end);
+    protected GoGame addMove(GoGame end, int player, GameCommand<GoGame> move) {
+      end = move.move(end);
       boolean ally = end.currentPlayer == player;
       double gameFitness = judgement.gameFitness(end, player);
       isAlly.add(ally);
       fitness.add(gameFitness);
       commands.add(move);
+      return end;
     }
 
     protected GameCommand<GoGame> weightedRandomMove(GoGame end) {
@@ -89,7 +90,7 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
         {
           move = weightedRandomMove(end);
         }
-        scenario.addMove(end, player, move);
+        end = scenario.addMove(end, player, move);
       }
       return scenario;
     }

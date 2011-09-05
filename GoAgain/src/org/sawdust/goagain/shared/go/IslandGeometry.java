@@ -3,7 +3,9 @@ package org.sawdust.goagain.shared.go;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @SuppressWarnings("serial")
@@ -77,14 +79,6 @@ public class IslandGeometry implements Serializable {
     return result;
   }
 
-  @Deprecated
-  public boolean isDead(GoGame board) {
-    for (Tile t : perimiter) {
-      if (0 == board.getState(t)) return false;
-    }
-    return true;
-  }
-
   private transient IslandGeometry thin = null;
 
   public IslandGeometry thin() {
@@ -98,14 +92,6 @@ public class IslandGeometry implements Serializable {
     return thin;
   }
 
-  @Deprecated
-  boolean surrounds(IslandGeometry i) {
-    for (Tile t : i.getPerimiter()) {
-      if (!getPositions().contains(t)) return false;
-    }
-    return true;
-  }
-
   Integer id = null;
 
   public int getId() {
@@ -117,45 +103,75 @@ public class IslandGeometry implements Serializable {
     return id;
   }
 
-  public Integer countConnections(IslandGeometry geometry) {
-    int count = 0;
-    Set<Tile> tiles = new HashSet<Tile>(getPositions());
-    tiles.retainAll(geometry.getPerimiter());
-    for (Tile p : tiles) {
-      for (Tile n : p.neighbors()) {
-        if (geometry.getPositions().contains(n)) count++;
-      }
-    }
-    return count;
+  public Set<Tile> countConnections(IslandGeometry geometry) {
+    Set<Tile> tiles = new HashSet<Tile>(geometry.getPositions());
+    tiles.retainAll(getPerimiter());
+    return tiles;
+//    int count = 0;
+//    for (Tile p : tiles) {
+//      for (Tile n : p.neighbors()) {
+//        if (geometry.getPositions().contains(n)) count++;
+//      }
+//    }
+//    return count;
   }
 
+  //Map<Tile, Collection<IslandGeometry>> splitCache = new HashMap<Tile, Collection<IslandGeometry>>();
+
   public Collection<IslandGeometry> remove(Tile tile) {
+    //if (splitCache.containsKey(tile)) return splitCache.get(tile);
     ArrayList<IslandGeometry> list = new ArrayList<IslandGeometry>();
     Set<Tile> tilesLeft = new HashSet<Tile>(getPositions());
     tilesLeft.remove(tile);
-    while(tilesLeft.size() > 0)
-    {
+    while (tilesLeft.size() > 0) {
       Set<Tile> region = extractRegion(tilesLeft);
       list.add(new IslandGeometry(region));
       tilesLeft.removeAll(region);
     }
+    //assert (checkSplit(tile, list));
+    //splitCache.put(tile, list);
     return list;
   }
 
+  private boolean checkSplit(Tile tile, ArrayList<IslandGeometry> list) {
+    Set<Tile> allTiles = new HashSet<Tile>(getPositions());
+    if(!allTiles.contains(tile))
+    {
+      return false;
+    }
+    allTiles.remove(tile);
+    for (IslandGeometry i : list) {
+      assert (!i.getPositions().contains(tile));
+      for (Tile t : i.getPositions()) {
+        if(!allTiles.contains(t))
+        {
+          return false;
+        }
+        allTiles.remove(t);
+      }
+    }
+    if(0 < allTiles.size())
+    {
+      return false;
+    }
+    return true;
+  }
+
   public static Set<Tile> extractRegion(Set<Tile> availible) {
+    return extractRegion(availible, availible.iterator().next(), Integer.MAX_VALUE);
+  }
+
+  public static Set<Tile> extractRegion(Set<Tile> availible, Tile first, int generations) {
     Set<Tile> currentIsland = new HashSet<Tile>();
     Set<Tile> newIsland = new HashSet<Tile>();
-    newIsland.add(availible.iterator().next());
-    while(newIsland.size() > 0)
-    {
+    newIsland.add(first);
+    while (newIsland.size() > 0) {
+      if(generations-- == 0) break;
       currentIsland.addAll(newIsland);
       Set<Tile> newBorder = new HashSet<Tile>();
-      for(Tile t : newIsland)
-      {
-        for(Tile n : t.neighbors())
-        {
-          if(!currentIsland.contains(n) && availible.contains(n))
-          {
+      for (Tile t : newIsland) {
+        for (Tile n : t.neighbors()) {
+          if (!currentIsland.contains(n) && availible.contains(n)) {
             newBorder.add(n);
           }
         }
@@ -181,5 +197,16 @@ public class IslandGeometry implements Serializable {
     return builder.toString();
   }
 
+  public Collection<IslandGeometry> partition(int size) {
+    Set<Tile> allTiles = new HashSet<Tile>(getPositions());
+    ArrayList<IslandGeometry> list = new ArrayList<IslandGeometry>();
+    while(allTiles.size() > 0)
+    {
+      Set<Tile> region = extractRegion(allTiles, allTiles.iterator().next(), size);
+      list.add(new IslandGeometry(region));
+      allTiles.removeAll(region);
+    }
+    return list;
+  }
 
 }

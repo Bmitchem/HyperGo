@@ -22,6 +22,7 @@ public class AiController {
     private double progress = 0;
     private final IterativeResult<GoGame> contemplation;
     private final AsyncCallback<Void> aiChainHandler;
+    double reps = 100;
 
     public AiTask(GoAI goAI, AsyncCallback<Void> aiChainHandler) {
       this.aiChainHandler = aiChainHandler;
@@ -40,10 +41,13 @@ public class AiController {
       }
       else
       {
-        for(int j=0;j<100;j++)
+        long timer = -System.currentTimeMillis();
+        for(int j=0;j<reps;j++)
         {
           progress = contemplation.think();
         }
+        timer += System.currentTimeMillis();
+        reps *= (250./timer);
         pct.setText(((int)(progress*100.)) + "%");
       }
     }
@@ -58,8 +62,8 @@ public class AiController {
         GameCommand<GoGame> best = contemplation.best();
         if(null != best)
         {
-          best.move(AiController.this.goGameController.board.getGame());
-          AiController.this.goGameController.board.redraw();
+          GoBoardWidget board = AiController.this.goGameController.board;
+          board.setGame(best.move(board.getGame()));
           AiController.this.goGameController.saveState(aiChainHandler);
         }
         else

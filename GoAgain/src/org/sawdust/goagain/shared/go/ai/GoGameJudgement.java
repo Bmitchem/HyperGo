@@ -3,7 +3,6 @@ package org.sawdust.goagain.shared.go.ai;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
-import org.sawdust.goagain.shared.go.Tile;
 
 @SuppressWarnings("serial")
 public class GoGameJudgement implements GameFitness<GoGame> {
@@ -61,12 +60,7 @@ public class GoGameJudgement implements GameFitness<GoGame> {
 //      }
       
       // Freedom-level fitness
-      double freedom = 0;
-      for (Tile t : island.geometry.getPerimiter()) {
-        if (game.getState(t) == 0) {
-          freedom += 1;
-        }
-      }
+      double freedom = island.getFreedom(game);
       if(freedom == 1)
       {
         freedom = -10;

@@ -13,14 +13,15 @@ import java.util.TreeSet;
 
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.boards.BoardLayout;
+import org.sawdust.goagain.shared.go.ai.IslandContext;
 
 @SuppressWarnings("serial")
 public class GoGame implements Serializable {
 
   public static final class PassMove extends GameCommand<GoGame> {
     @Override
-    public void move(GoGame board) {
-      board.pass();
+    public GoGame move(GoGame board) {
+      return board.pass();
     }
 
     @Override
@@ -42,12 +43,12 @@ public class GoGame implements Serializable {
     }
 
     @Override
-    public void move(GoGame board) {
-      board.play(tile);
+    public GoGame move(GoGame board) {
+      return board.play(tile);
     }
   }
 
-  public BoardLayout layout = randomValue(BoardLayout.layouts);
+  private BoardLayout layout = randomValue(BoardLayout.layouts);
   public Set<String> previousStates = new TreeSet<String>();
   public Map<Integer, IslandNode> islands = new HashMap<Integer, IslandNode>();
   
@@ -58,7 +59,12 @@ public class GoGame implements Serializable {
   public Integer winner = null;
   
   public GoGame() {
-    reset();
+    Collection<IslandGeometry> partitions = new IslandGeometry(getLayout().getTiles().values()).partition(Integer.MAX_VALUE);
+    for(IslandGeometry geometry : partitions)
+    {
+      add(new IslandNode(0, geometry, partitions));
+    }
+    assert(isValid());
   }
 
   public static <T,K> T randomValue(Map<K, T> map) {
@@ -72,8 +78,8 @@ public class GoGame implements Serializable {
   }
 
   protected GoGame(GoGame game) {
-    layout = game.layout;
-    layout.assertValidIds();
+    layout = game.getLayout();
+    getLayout().assertValidIds();
     islands.putAll(game.islands);
     previousStates.addAll(game.previousStates);
     for(int i=0;i<numberOfPlayers();i++) prisoners[i] = game.prisoners[i];
@@ -82,20 +88,17 @@ public class GoGame implements Serializable {
     passesInARow = game.passesInARow;
   }
 
-  private void reset(GoGame backup) {
-    islands = backup.islands;
-    prisoners = backup.prisoners;
-    winner = backup.winner;
-    currentPlayer = backup.currentPlayer;
+  public GoGame(BoardLayout layout) {
+    this.layout = layout;
+    Collection<IslandGeometry> partitions = new IslandGeometry(getLayout().getTiles().values()).partition(Integer.MAX_VALUE);
+    for(IslandGeometry geometry : partitions)
+    {
+      add(new IslandNode(0, geometry, partitions));
+    }
   }
 
-  public void reset() {
-    previousStates.clear();
-    islands.clear();
-    prisoners = new int[]{0,0};
-    winner = null;
-    add(new IslandNode(0, new IslandGeometry(layout.getTiles().values()), null));
-    assert(isValid());
+  public GoGame reset() {
+    return new GoGame(this.layout);
   }
 
   private void add(IslandNode islandNode) {
@@ -129,27 +132,22 @@ public class GoGame implements Serializable {
     return list;
   }
 
-  public int getState(Tile tile) {
-    if(null == tile) return -1;
-    IslandNode island = getIsland(tile);
-    if(null == island) return 0;
-    return island.getPlayer();
-  }
-
   public Tile nearestTile(double x, double y, int width, int height) {
     double size = (width<height)?width:height;
-    return layout.nearestTile(x / size, y /= size);
+    return getLayout().nearestTile(x / size, y /= size);
   }
 
-  public void pass() {
-    if(++passesInARow >= 2)
+  public GoGame pass() {
+    GoGame nextGame = this.cloneGame();
+    if(++nextGame.passesInARow >= 2)
     {
-      decideWinner();
+      nextGame.decideWinner();
     }
     else
     {
-      nextPlayer();
+      nextGame.nextPlayer();
     }
+    return nextGame;
   }
 
 
@@ -184,13 +182,13 @@ public class GoGame implements Serializable {
     return hash;
   }
 
-  public void play(final Tile tile) {
+  public GoGame play(final Tile tile) {
     IslandNode thisIsland = getIsland(tile);
-    if(0 != thisIsland.getPlayer()) throw new RuntimeException("Tile occupied!");
-    passesInARow = 0;
-    GoGame backup = this.cloneGame();
+    if(0 != thisIsland.getPlayer()) return null;
+    GoGame nextGame = this.cloneGame();
+    nextGame.passesInARow = 0;
     // Split the whitespace island
-    Collection<IslandNode> splitNeighbors = thisIsland.neighbors(this);
+    Collection<IslandNode> splitNeighbors = thisIsland.neighbors(nextGame).keySet();
     Collection<IslandNode> splitIslands = new ArrayList<IslandNode>();
     Collection<IslandGeometry> split = thisIsland.geometry.remove(tile);
     Set<IslandGeometry> splitNeighborhood = new HashSet<IslandGeometry>(split);
@@ -206,10 +204,10 @@ public class GoGame implements Serializable {
     }
     IslandNode moveNode = new IslandNode(currentPlayer, moveGeometry, splitNeighborhood);
     splitIslands.add(moveNode);
-    islands.remove(thisIsland.getId());
+    nextGame.remove(thisIsland);
     for(IslandNode i : splitIslands)
     {
-      islands.put(i.getId(), i);
+      nextGame.add(i);
     }
     // Join new adjacent compatible islands
     Collection<IslandNode> toJoin = new ArrayList<IslandNode>();
@@ -217,18 +215,18 @@ public class GoGame implements Serializable {
     toJoin.add(moveNode);
     for(IslandNode i : splitNeighbors)
     {
-      islands.remove(i.getId());
+      nextGame.remove(i);
       IslandNode replace = i.replace(thisIsland, splitIslands);
-      islands.put(i.getId(), replace);
+      nextGame.add(replace);
       if(replace.border.containsKey(moveNode.getId()))
       {
-        if(i.getPlayer() == currentPlayer)
+        if(replace.getPlayer() == currentPlayer)
         {
-          toJoin.add(i);
+          toJoin.add(replace);
         }
         else
         {
-          possiblyCaptured.add(i);
+          possiblyCaptured.add(replace);
         }
       }
     }
@@ -238,7 +236,7 @@ public class GoGame implements Serializable {
       Set<Tile> joinedTiles = new HashSet<Tile>();
       for(IslandNode i : toJoin)
       {
-        for(IslandNode n : i.neighbors(this))
+        for(IslandNode n : i.neighbors(nextGame).keySet())
         {
           joinNeighbors.add(n.geometry);
         }
@@ -251,13 +249,13 @@ public class GoGame implements Serializable {
       IslandNode joinedIsland = new IslandNode(currentPlayer, new IslandGeometry(joinedTiles), joinNeighbors);
       for(IslandGeometry i : joinNeighbors)
       {
-        int id = i.getId();
-        IslandNode node = islands.get(id);
-        islands.remove(id);
-        islands.put(id, node.replace(toJoin, joinedIsland));
+        IslandNode node = nextGame.islands.get(i.getId());
+        nextGame.remove(node);
+        IslandNode replace = node.replace(toJoin, joinedIsland);
+        nextGame.add(replace);
       }
-      for(IslandNode i : toJoin) islands.remove(i.getId());
-      add(joinedIsland);
+      for(IslandNode i : toJoin) nextGame.remove(i);
+      nextGame.add(joinedIsland);
       possiblyCaptured.add(joinedIsland);
     }
     else
@@ -267,44 +265,66 @@ public class GoGame implements Serializable {
     // Capture surrounded islands
     for(IslandNode i : possiblyCaptured)
     {
-      int id = i.getId();
-      if(islands.get(id).isDead(this))
+      IslandNode captured = nextGame.islands.get(i.getId());
+      if(captured.isDead(nextGame))
       {
-        islands.remove(id);
-        islands.put(id, i.capture());
+        nextGame.remove(captured);
+        nextGame.add(captured.capture());
       }
     }
     // Check if move violates Ko rule
-    hash = null;
-    String stateHash = getStateHash();
+    nextGame.hash = null;
+    String stateHash = nextGame.getStateHash();
     if(previousStates.contains(stateHash)) {
-      reset(backup);
-      throw new RuntimeException("Move Violates Ko");
+      return null;
     }
     else
     {
-      previousStates.add(stateHash);
+      nextGame.previousStates.add(stateHash);
     }
-    nextPlayer();
+    nextGame.nextPlayer();
+    //nextGame.printIslands();
+    return nextGame;
+  }
+
+  public void printIslands() {
+    System.out.println("\nGame Islands:");
+    for(IslandNode i : islands.values())
+    {
+      System.out.println(i.toString());
+      if(0 != i.getPlayer())
+      {
+        IslandContext islandContext = new IslandContext(this, i);
+        System.out.println("  Liberties: " + idList(islandContext.liberties));
+        System.out.println("  Territory: " + idList(islandContext.territory));
+        System.out.println("  Contested: " + idList(islandContext.contested));
+        System.out.println("  Opponent: " + idList(islandContext.opponent));
+      }
+    }
+  }
+
+  private String idList(Set<IslandNode> liberties) {
+    ArrayList<Integer> list = new ArrayList<Integer>();
+    for(IslandNode i : liberties) list.add(i.getId());
+    return list.toString();
+  }
+
+  private void remove(IslandNode thisIsland) {
+    islands.remove(thisIsland.getId());
   }
 
   protected void nextPlayer() {
-    assert(isValid());
+    //assert(isValid());
     if(++currentPlayer == 3) currentPlayer = 1;
   }
 
   private boolean isValid() {
-    System.out.println("\nNew Island config:");
+    Set<Tile> allTiles = new HashSet<Tile>(getLayout().getTiles().values());
     for(IslandNode i : islands.values())
     {
-      System.out.println(i.toString());
-    }
-    Set<Tile> allTiles = new HashSet<Tile>(layout.getTiles().values());
-    for(IslandNode i : islands.values())
-    {
-      for(IslandNode n : i.neighbors(this))
+      if(0 == i.neighbors(this).size())
       {
-        if(null == n)
+        if(islands.size() > 1)
         {
           return false;
         }
@@ -361,7 +381,7 @@ public class GoGame implements Serializable {
       }
       else if(island.getPlayer() == 0) 
       {
-        if(isTerritory(player, island))
+        if(island.isTerritory(player, this))
         {
           territory += island.geometry.getSize();
         }
@@ -370,26 +390,6 @@ public class GoGame implements Serializable {
     return territory;
   }
 
-  protected boolean isTerritory(int player, IslandNode island) {
-    boolean touchesSelf = false;
-    boolean touchesOther = false;
-    // TODO: Update
-    for(Tile n : island.geometry.getPerimiter())
-    {
-      int state = getState(n);
-      if(state == player)
-      {
-        touchesSelf = true;
-      }
-      else if(0 != state)
-      {
-        touchesOther = true;
-      }
-    }
-    boolean isTerritory = touchesSelf && !touchesOther;
-    return isTerritory;
-  }
-  
   @Override
   public int hashCode() {
     return getStateHash().hashCode();
@@ -402,9 +402,9 @@ public class GoGame implements Serializable {
     if (getClass() != obj.getClass()) return false;
     GoGame other = (GoGame) obj;
     if (currentPlayer != other.currentPlayer) return false;
-    if (layout == null) {
-      if (other.layout != null) return false;
-    } else if (!layout.equals(other.layout)) return false;
+    if (getLayout() == null) {
+      if (other.getLayout() != null) return false;
+    } else if (!getLayout().equals(other.getLayout())) return false;
     if (hash == null) {
       if (other.hash != null) return false;
     } else if (!hash.equals(other.hash)) return false;
@@ -421,6 +421,29 @@ public class GoGame implements Serializable {
 
   public GoGame cloneGame() {
     return new GoGame(this);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("GoGame [currentPlayer=");
+    builder.append(currentPlayer);
+    builder.append(", islands=");
+    for(IslandNode i : islands.values())
+    {
+      builder.append("\n  ");
+      builder.append(i);
+    }
+    builder.append("]");
+    return builder.toString();
+  }
+
+  public GoGame setLayout(BoardLayout layout) {
+    return new GoGame(layout);
+  }
+
+  public BoardLayout getLayout() {
+    return layout;
   }
   
 }

@@ -1,11 +1,5 @@
 package org.sawdust.goagain.client;
 
-import java.util.Map.Entry;
-
-import org.sawdust.goagain.shared.boards.BoardLayout;
-import org.sawdust.goagain.shared.boards.HexagonalLayout;
-import org.sawdust.goagain.shared.boards.RectangularLayout;
-import org.sawdust.goagain.shared.boards.TriangularLayout;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
 import org.sawdust.goagain.shared.go.Tile;
@@ -13,20 +7,12 @@ import org.sawdust.goagain.shared.go.Tile;
 import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.canvas.dom.client.CssColor;
-import com.google.gwt.event.dom.client.ChangeEvent;
-import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.logical.shared.ValueChangeEvent;
-import com.google.gwt.event.logical.shared.ValueChangeHandler;
 import com.google.gwt.user.client.ui.Button;
-import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.DialogBox;
 import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.IntegerBox;
 import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.TextArea;
 import com.google.gwt.user.client.ui.VerticalPanel;
@@ -40,7 +26,7 @@ public abstract class GoBoardWidget extends SimplePanel {
 
   
   private double boldness = 1.;
-  private boolean connectDots = true;
+  boolean connectDots = true;
   
   private final TextArea info = new TextArea();
   private final Canvas canvas = Canvas.createIfSupported();
@@ -68,10 +54,20 @@ public abstract class GoBoardWidget extends SimplePanel {
 
     canvas.addClickHandler(new ClickHandler() {
       public void onClick(ClickEvent event) {
-        Tile nearestTile = GoBoardWidget.this.getGame().nearestTile(event.getX(), event.getY(), getWidth(), getHeight());
-        GoBoardWidget.this.getGame().play(nearestTile);
-        redraw();
-        save();
+        GoGame currentGame = GoBoardWidget.this.getGame();
+        if(null != currentGame)
+        {
+          Tile nearestTile = currentGame.nearestTile(event.getX(), event.getY(), getWidth(), getHeight());
+          if(null != nearestTile)
+          {
+            GoGame newGame = currentGame.play(nearestTile);
+            if(null != newGame)
+            {
+              GoBoardWidget.this.setGame(newGame);
+              save();
+            }
+          }
+        }
       }
     });
   }
@@ -81,10 +77,10 @@ public abstract class GoBoardWidget extends SimplePanel {
   public void draw(Context2d context) {
     if(null == game) return;
     double size = (width<height)?width:height;
-    double boldness = this.boldness * game.layout.getScale();
+    double boldness = this.boldness * game.getLayout().getScale();
     context.setFillStyle(tan);
     context.fillRect(0, 0, size, size);
-    for(Tile tile : game.layout.getTiles().values())
+    for(Tile tile : game.getLayout().getTiles().values())
     {
       double x1 = tile.x * size;
       double y1 = tile.y * size;
@@ -202,149 +198,6 @@ public abstract class GoBoardWidget extends SimplePanel {
     return info;
   }
 
-  
-  public Widget getConfigWidget(final GoGame game) {
-    VerticalPanel verticalPanel = new VerticalPanel();
-
-    {
-      CheckBox w = new CheckBox("Connect the dots");
-      w.setValue(connectDots);
-      w.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
-        
-        public void onValueChange(ValueChangeEvent<Boolean> event) {
-          connectDots = event.getValue();
-        }
-      });
-      verticalPanel.add(w);
-    }
-
-    {
-      CheckBox w = new CheckBox("Score Prisoners");
-      w.setValue(game.scorePrisoners);
-      w.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
-        
-        public void onValueChange(ValueChangeEvent<Boolean> event) {
-          game.scorePrisoners = event.getValue();
-        }
-      });
-      verticalPanel.add(w);
-    }
-    
-    final ListBox w = new ListBox();
-    for(Entry<String, BoardLayout> e : BoardLayout.layouts.entrySet())
-    {
-      w.addItem(e.getKey());
-      if(game.layout == e.getValue()) 
-      {
-        w.setSelectedIndex(w.getItemCount()-1);
-      }
-    }
-    final VerticalPanel layoutConfig = new VerticalPanel();
-    w.addChangeHandler(new ChangeHandler() {
-      public void onChange(ChangeEvent event) {
-        game.layout = BoardLayout.layouts.get(w.getValue(w.getSelectedIndex()));
-        layoutConfig.clear();
-        populateLayoutConfigWidget(game, layoutConfig);
-      }
-    });
-    verticalPanel.add(w);
-    verticalPanel.add(layoutConfig);
-    populateLayoutConfigWidget(game, layoutConfig);
-    return verticalPanel;
-  }
-
-  protected void populateLayoutConfigWidget(final GoGame game, VerticalPanel layoutConfig) {
-    if(game.layout instanceof RectangularLayout)
-    {
-      rectangularLayoutConfig(game, layoutConfig);
-    }
-    else if(game.layout instanceof HexagonalLayout)
-    {
-      hexLayoutConfig(game, layoutConfig);
-    }
-    else if(game.layout instanceof TriangularLayout)
-    {
-      triangularLayoutConfig(game, layoutConfig);
-    }
-    else 
-    {
-      layoutConfig.add(new Label("Unknown layout type - cannot configure"));
-    }
-  }
-
-  protected void rectangularLayoutConfig(final GoGame game, VerticalPanel verticalPanel) {
-    final RectangularLayout layout = (RectangularLayout) game.layout;
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Rows: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(layout.tileRows);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          layout.tileRows = event.getValue();
-          layout.calculateLayout();
-          game.reset();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-    
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Columns: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(layout.tileCols);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          layout.tileCols = event.getValue();
-          layout.calculateLayout();
-          game.reset();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-  }
-
-  protected void hexLayoutConfig(final GoGame game, VerticalPanel verticalPanel) {
-    final HexagonalLayout layout = (HexagonalLayout) game.layout;
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Size: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(layout.size);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          layout.size = event.getValue();
-          layout.calculateLayout();
-          game.reset();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-  }
-
-  protected void triangularLayoutConfig(final GoGame game, VerticalPanel verticalPanel) {
-    final TriangularLayout layout = (TriangularLayout) game.layout;
-    {
-      HorizontalPanel panel = new HorizontalPanel();
-      panel.add(new Label("Size: "));
-      IntegerBox v = new IntegerBox();
-      v.setValue(layout.size);
-      panel.add(v);
-      v.addValueChangeHandler(new ValueChangeHandler<Integer>() {
-        public void onValueChange(ValueChangeEvent<Integer> event) {
-          layout.size = event.getValue();
-          layout.calculateLayout();
-          game.reset();
-        }
-      });
-      verticalPanel.add(panel);
-    }
-  }
-
   public void redraw() {
     Context2d context = canvas.getContext2d();
     context.clearRect(0, 0, getWidth(), getHeight());
@@ -381,7 +234,7 @@ public abstract class GoBoardWidget extends SimplePanel {
 
 
   protected boolean announceWinner() {
-    if (null != game.winner) {
+    if (null != game && null != game.winner) {
       final DialogBox dialogBox = new DialogBox();
       VerticalPanel dialogVPanel = new VerticalPanel();
       dialogBox.add(dialogVPanel);
@@ -394,9 +247,8 @@ public abstract class GoBoardWidget extends SimplePanel {
       dialogVPanel.add(close);
       close.addClickHandler(new ClickHandler() {
         public void onClick(ClickEvent event) {
-          game.reset();
+          setGame(game.reset());
           dialogBox.hide();
-          redraw();
           save();
         }
       });

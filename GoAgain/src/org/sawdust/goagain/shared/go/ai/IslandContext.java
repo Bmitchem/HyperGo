@@ -1,45 +1,44 @@
 package org.sawdust.goagain.shared.go.ai;
 
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
+import org.sawdust.goagain.shared.go.Tile;
 
 public class IslandContext
 {
-  Set<IslandNode> liberties = new HashSet<IslandNode>();
-  Set<IslandNode> territory = new HashSet<IslandNode>();
-  Set<IslandNode> contested = new HashSet<IslandNode>();
-  Set<IslandNode> opponent = new HashSet<IslandNode>();
+  public final Set<IslandNode> liberties = new HashSet<IslandNode>();
+  public final Set<IslandNode> territory = new HashSet<IslandNode>();
+  public final Set<IslandNode> contested = new HashSet<IslandNode>();
+  public final Set<IslandNode> opponent = new HashSet<IslandNode>();
 
   public IslandContext(GoGame game, IslandNode island) {
-    throw new RuntimeException("Not Implemented");
-//  Set<Tile> perimiter = new HashSet<Tile>(getPerimiter());
-//  while(perimiter.size() > 0)
-//  {
-//    Tile t = perimiter.iterator().next();
-//    IslandNode i = game.getIsland(t);
-//    perimiter.removeAll(i.geometry.getPositions());
-//    if(i.getPlayer()==0)
-//    {
-//      if(i.geometry.thin().getSize() < 2 && surrounds(i.geometry))
-//      {
-//        surroundings.liberties.add(i);
-//      }
-//      else if(game.isTerritory(getPlayer(), i))
-//      {
-//        surroundings.territory.add(i);
-//      }
-//      else
-//      {
-//        surroundings.contested.add(i);
-//      }
-//    }
-//    else
-//    {
-//      surroundings.opponent.add(i);
-//    }
-//  }
+    for(Entry<IslandNode, Set<Tile>> e : island.neighbors(game).entrySet())
+    {
+      IslandNode i = e.getKey();
+      if(i.getPlayer()==0)
+      {
+        if(i.geometry.thin().getSize() < 2 && island.surrounds(i))
+        {
+          liberties.addAll(i.getConnectedMatching(game));
+        }
+        else if(i.isTerritory(island.getPlayer(), game))
+        {
+          territory.addAll(i.getConnectedMatching(game));
+        }
+        else
+        {
+          contested.addAll(i.getConnectedMatching(game));
+        }
+      }
+      else
+      {
+        opponent.add(i);
+      }
+      
+    }
   }
 }

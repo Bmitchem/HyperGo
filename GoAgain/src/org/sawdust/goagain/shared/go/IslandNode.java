@@ -1,15 +1,23 @@
 package org.sawdust.goagain.shared.go;
 
-import java.util.ArrayList;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
-public class IslandNode {
+@SuppressWarnings("serial")
+public class IslandNode implements Serializable {
 
-  public final IslandGeometry geometry;
-  public final int player;
-  public final Map<Integer,Integer> border = new HashMap<Integer, Integer>();
+  public IslandGeometry geometry;
+  public int player;
+  public Map<Integer,Set<Tile>> border = new HashMap<Integer, Set<Tile>>();
+
+  protected IslandNode() {
+    super();
+  }
 
   private IslandNode(int player, IslandGeometry geometry) {
     super();
@@ -23,8 +31,8 @@ public class IslandNode {
     {
       for(IslandGeometry n : neighbors)
       {
-        Integer countConnections = geometry.countConnections(n);
-        if(0 < countConnections)
+        Set<Tile> countConnections = geometry.countConnections(n);
+        if(0 < countConnections.size())
         {
           border.put(n.getId(), countConnections);
         }
@@ -38,8 +46,8 @@ public class IslandNode {
     mutant.border.remove(thisIsland.getId());
     for(IslandNode i : created)
     {
-      Integer countConnections = geometry.countConnections(i.geometry);
-      if(0 < countConnections)
+      Set<Tile> countConnections = geometry.countConnections(i.geometry);
+      if(0 < countConnections.size())
       {
         mutant.border.put(i.getId(), countConnections);
       }
@@ -50,18 +58,18 @@ public class IslandNode {
   public IslandNode replace(Collection<IslandNode> toJoin, IslandNode created) {
     IslandNode mutant = new IslandNode(player, geometry);
     mutant.border.putAll(border);
-    int countConnections = 0;
+    Set<Tile> countConnections = new HashSet<Tile>();
     for(IslandNode i : toJoin)
     {
-      Integer integer = mutant.border.get(i.getId());
+      Collection<Tile> integer = mutant.border.get(i.getId());
       if(null != integer)
       {
-        countConnections += integer;
+        countConnections.addAll(integer);
         mutant.border.remove(i.getId());
       }
     }
-    assert(0 < countConnections);
-    assert(countConnections == (int)geometry.countConnections(created.geometry));
+    assert(0 < countConnections.size());
+    assert(countConnections.equals(geometry.countConnections(created.geometry)));
     mutant.border.put(created.getId(), countConnections);
     return mutant;
   }
@@ -81,8 +89,7 @@ public class IslandNode {
   }
 
   public boolean isDead(GoGame game) {
-    Collection<IslandNode> neighbors = neighbors(game);
-    for(IslandNode n : neighbors)
+    for(IslandNode n : neighbors(game).keySet())
     {
       if(0 == n.getPlayer())
       {
@@ -93,14 +100,20 @@ public class IslandNode {
   }
 
   public boolean surrounds(IslandNode space) {
-    return false;
+    if(space.border.size() > 1) return false;
+    return space.border.containsKey(getId());
   }
 
-  public Collection<IslandNode> neighbors(GoGame game) {
-    ArrayList<IslandNode> arrayList = new ArrayList<IslandNode>();
-    for(int i : border.keySet())
+  public Map<IslandNode, Set<Tile>> neighbors(GoGame game) {
+    Map<IslandNode, Set<Tile>> arrayList = new HashMap<IslandNode, Set<Tile>>();
+    for(Entry<Integer, Set<Tile>> i : border.entrySet())
     {
-      arrayList.add(game.islands.get(i));
+      IslandNode key = game.islands.get(i.getKey());
+      if(null == key)
+      {
+        assert(null != key);
+      }
+      arrayList.put(key, i.getValue());
     }
     return arrayList;
   }
@@ -137,6 +150,71 @@ public class IslandNode {
     builder.append(border);
     builder.append("]");
     return builder.toString();
+  }
+
+  public double getFreedom(GoGame game) {
+    int freedom = 0;
+    // TODO: This gives too high a value to freedom, need to track tiles in each border
+    for(Entry<IslandNode, Set<Tile>> n : neighbors(game).entrySet())
+    {
+      if(0 == n.getKey().getPlayer())
+      {
+        freedom += n.getValue().size();
+      }
+    }
+    return freedom;
+  }
+
+  public Boolean isTerritory(int forPlayer, GoGame game, Set<Integer> consideredIslands) {
+    consideredIslands.add(getId());
+    boolean foundFreindly = false;
+    for(Entry<Integer, Set<Tile>> e : border.entrySet())
+    {
+      IslandNode n = game.islands.get(e.getKey());
+      int p = n.getPlayer();
+      if(0 != p)
+      {
+        if(p == forPlayer) 
+        {
+          foundFreindly = true;
+        }
+        else
+        {
+          return null;
+        }
+      }
+      else if(!consideredIslands.contains(n.getId()))
+      {
+        Boolean territory = n.isTerritory(forPlayer, game, consideredIslands);
+        if(null == territory) return null;
+        if(territory) foundFreindly = true;
+      }
+    }
+    return foundFreindly;
+  }
+
+  public boolean isTerritory(int forPlayer, GoGame game) {
+    Boolean foundFreindly = isTerritory(forPlayer, game, new HashSet<Integer>());
+    if(null == foundFreindly) return false;
+    return foundFreindly;
+  }
+
+  public Collection<IslandNode> getConnectedMatching(GoGame game) {
+    HashSet<IslandNode> set = new HashSet<IslandNode>();
+    getConnectedMatching(game, set);
+    return set;
+  }
+
+  public void getConnectedMatching(GoGame game, HashSet<IslandNode> set) {
+    set.add(this);
+    for(IslandNode n : new HashSet<IslandNode>(neighbors(game).keySet()))
+    {
+      int p = n.getPlayer();
+      if(0 == p && !set.contains(n))
+      {
+        n.getConnectedMatching(game, set);
+      }
+    }
   }
   
 }
