@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import org.sawdust.goagain.shared.ai.Ai;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.ai.MCTSContemplation;
 import org.sawdust.goagain.shared.ai.MoveFitness;
 import org.sawdust.goagain.shared.ai.TreeSearchContemplation;
 import org.sawdust.goagain.shared.go.GoGame;
@@ -16,6 +17,7 @@ public class GoAI implements Ai<GoGame> {
   public boolean useServer = false;
   
   public String depth = "50 50";
+  public boolean useMCTS = true;
   public MoveFitness<GoGame> intuition = new GoMoveIntuition();
   public GameFitness<GoGame> judgement = new GoGameJudgement();
   
@@ -29,11 +31,20 @@ public class GoAI implements Ai<GoGame> {
     return last;
   }
 
+  
   public IterativeResult<GoGame> newContemplation(GoGame game) {
-    String[] split = depth.split(" |,");
-    int[] treeWidth = new int[split.length];
-    for(int i=0;i<split.length;i++) treeWidth[i] = Integer.parseInt(split[i]);
-    return new TreeSearchContemplation(game, intuition, judgement, treeWidth);
+    if (useMCTS)
+    {
+      return new MCTSContemplation(game);
+    }
+    else
+    {
+      String[] split = depth.split(" |,");
+      int[] treeWidth = new int[split.length];
+      for (int i = 0; i < split.length; i++)
+        treeWidth[i] = Integer.parseInt(split[i]);
+      return new TreeSearchContemplation(game, intuition, judgement, treeWidth);
+    }
   }
 
 }

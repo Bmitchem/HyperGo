@@ -1,9 +1,9 @@
 package org.sawdust.goagain.shared;
 
-public abstract class GameCommand<T> {
+public interface GameCommand<T> {
 
-  public abstract T move(T board);
+  T move(T board);
 
-  public abstract String getCommandText();
+  String getCommandText();
 
 }

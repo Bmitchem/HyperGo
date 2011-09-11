@@ -22,7 +22,7 @@ public class AiController {
     private double progress = 0;
     private final IterativeResult<GoGame> contemplation;
     private final AsyncCallback<Void> aiChainHandler;
-    double reps = 100;
+    double reps = 10;
 
     public AiTask(GoAI goAI, AsyncCallback<Void> aiChainHandler) {
       this.aiChainHandler = aiChainHandler;
@@ -47,7 +47,7 @@ public class AiController {
           progress = contemplation.think();
         }
         timer += System.currentTimeMillis();
-        reps *= (250./timer);
+        reps *= Math.pow(250./timer, 0.3);
         pct.setText(((int)(progress*100.)) + "%");
       }
     }

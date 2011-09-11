@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.sawdust.goagain.shared.GameCommand;
@@ -18,37 +17,95 @@ import org.sawdust.goagain.shared.go.ai.IslandContext;
 @SuppressWarnings("serial")
 public class GoGame implements Serializable {
 
-  public static final class PassMove extends GameCommand<GoGame> {
-    @Override
+  public static final class PassMove implements GameCommand<GoGame> {
+
     public GoGame move(GoGame board) {
       return board.pass();
     }
 
-    @Override
     public String getCommandText() {
       return "Pass";
     }
+
+    @Override
+    public int hashCode()
+    {
+      return 298304;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+      if (this == obj) return true;
+      if (obj == null) return false;
+      if (getClass() != obj.getClass()) return false;
+      return true;
+    }
+
+    @Override
+    public String toString()
+    {
+      StringBuilder builder = new StringBuilder();
+      builder.append("PassMove [getCommandText()=");
+      builder.append(getCommandText());
+      builder.append("]");
+      return builder.toString();
+    }
+    
   }
 
-  public static final class Move extends GameCommand<GoGame> {
+  public static final class Move implements GameCommand<GoGame> {
     public final Tile tile;
 
     public Move(Tile tile) {
       this.tile = tile;
     }
 
-    @Override
     public String getCommandText() {
       return tile.toString();
     }
 
-    @Override
     public GoGame move(GoGame board) {
       return board.play(tile);
     }
+
+    @Override
+    public int hashCode()
+    {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((tile == null) ? 0 : tile.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj)
+    {
+      if (this == obj) return true;
+      if (obj == null) return false;
+      if (getClass() != obj.getClass()) return false;
+      Move other = (Move) obj;
+      if (tile == null)
+      {
+        if (other.tile != null) return false;
+      }
+      else if (!tile.equals(other.tile)) return false;
+      return true;
+    }
+
+    @Override
+    public String toString()
+    {
+      StringBuilder builder = new StringBuilder();
+      builder.append("Move [tile=");
+      builder.append(tile);
+      builder.append("]");
+      return builder.toString();
+    }
+    
   }
 
-  private BoardLayout layout = randomValue(BoardLayout.layouts);
+  private BoardLayout layout = Util.randomValue(BoardLayout.layouts);
   public Set<String> previousStates = new TreeSet<String>();
   public Map<Integer, IslandNode> islands = new HashMap<Integer, IslandNode>();
   
@@ -65,16 +122,6 @@ public class GoGame implements Serializable {
       add(new IslandNode(0, geometry, partitions));
     }
     assert(isValid());
-  }
-
-  public static <T,K> T randomValue(Map<K, T> map) {
-    TreeMap<Double, K> randomOrder = new TreeMap<Double, K>();
-    for(K key : map.keySet())
-    {
-      randomOrder.put(Math.random(), key);
-    }
-    T t = map.get(randomOrder.entrySet().iterator().next().getValue());
-    return t;
   }
 
   protected GoGame(GoGame game) {
@@ -121,6 +168,15 @@ public class GoGame implements Serializable {
       {
         if(0 == i.getPlayer())
         {
+          if(i.geometry.positions.size() == 1 && i.border.size() == 1)
+          {
+            Integer surroundingIslandId = i.border.keySet().iterator().next();
+            IslandNode surroundingIsland = islands.get(surroundingIslandId);
+            if(surroundingIsland.getPlayer() == currentPlayer)
+            {
+              continue;
+            }
+          }
           for(final Tile tile : i.geometry.getPositions())
           {
             list.add(new Move(tile));

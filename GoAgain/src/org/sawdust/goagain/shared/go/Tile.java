@@ -43,10 +43,10 @@ public abstract class Tile implements Serializable {
     StringBuilder builder = new StringBuilder();
     builder.append("Tile [idx=");
     builder.append(idx);
-//    builder.append(", x=");
-//    builder.append(x);
-//    builder.append(", y=");
-//    builder.append(y);
+    builder.append(", x=");
+    builder.append(x);
+    builder.append(", y=");
+    builder.append(y);
     builder.append("]");
     return builder.toString();
   }
