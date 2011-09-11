@@ -18,7 +18,7 @@ public class GoAI implements Ai<GoGame> {
   public boolean useServer = false;
   
   public String depth = "50 50";
-  public boolean useMCTS = true;
+  public boolean useMCTS = false;
   public MoveFitness<GoGame> intuition = new GoMoveIntuition();
   public GameFitness<GoGame> judgement = new GoGameJudgement();
   

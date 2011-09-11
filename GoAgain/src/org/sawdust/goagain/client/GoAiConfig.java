@@ -41,6 +41,17 @@ public class GoAiConfig extends Widget {
       verticalPanel.add(v);
     }
     
+    {
+      CheckBox v = new CheckBox("Use MCTS ");
+      v.setValue(ai.useMCTS);
+      v.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
+        public void onValueChange(ValueChangeEvent<Boolean> event) {
+          ai.useMCTS = event.getValue();
+        }
+      });
+      verticalPanel.add(v);
+    }
+    
     return verticalPanel;
   }
 }
