@@ -66,7 +66,7 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
 
   public GoGame move(GoGame game, Ai<GoGame> goAI) {
     long endTime = System.currentTimeMillis() + 20 * 1000;
-    IterativeResult<GoGame> contemplation = goAI.newContemplation(game);
+    IterativeResult<GameCommand<GoGame>> contemplation = goAI.newContemplation(game);
     //for(int i=0;i<goAI.breadth/10;i++)
     while(true)
     {

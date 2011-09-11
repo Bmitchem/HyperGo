@@ -10,7 +10,7 @@ import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.ai.GoAI;
 
-public class MonteCarloContemplation implements IterativeResult<GoGame>
+public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGame>>
 {
   /**
    * 
@@ -26,7 +26,9 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
     public Scenario(GoGame game, int depth) {
       GoGame end = game.cloneGame();
       int player = end.currentPlayer;
-      fitness.add(judgement.gameFitness(end, player));
+      IterativeResult<FitnessValue> gameFitness = judgement.gameFitness(end, player);
+      while(1. > gameFitness.think()) {}
+      fitness.add(gameFitness.best().fitness);
       for(int i=0; i<depth; i++)
       {
         GameCommand<GoGame> move = weightedRandomMove(end);
@@ -49,9 +51,10 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
     protected GoGame addMove(GoGame end, int player, GameCommand<GoGame> move) {
       end = move.move(end);
       boolean ally = end.currentPlayer == player;
-      double gameFitness = judgement.gameFitness(end, player);
+      IterativeResult<FitnessValue> gameFitness = judgement.gameFitness(end, player);
+      while(1. > gameFitness.think()) {}
       isAlly.add(ally);
-      fitness.add(gameFitness);
+      fitness.add(gameFitness.best().fitness);
       commands.add(move);
       return end;
     }
@@ -79,7 +82,9 @@ public class MonteCarloContemplation implements IterativeResult<GoGame>
       Scenario scenario = new Scenario();
       GoGame end = game.cloneGame();
       int player = end.currentPlayer;
-      scenario.fitness.add(judgement.gameFitness(end, player));
+      IterativeResult<FitnessValue> gameFitness = judgement.gameFitness(end, player);
+      while(1. > gameFitness.think()) {}
+      scenario.fitness.add(gameFitness.best().fitness);
       for(int i=0; i<commands.size(); i++)
       {
         GameCommand<GoGame> move;

@@ -2,6 +2,7 @@ package org.sawdust.goagain.shared.go.ai;
 
 import java.util.TreeMap;
 
+import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.ai.Ai;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
@@ -32,7 +33,7 @@ public class GoAI implements Ai<GoGame> {
   }
 
   
-  public IterativeResult<GoGame> newContemplation(GoGame game) {
+  public IterativeResult<GameCommand<GoGame>> newContemplation(GoGame game) {
     if (useMCTS)
     {
       return new MCTSContemplation(game);

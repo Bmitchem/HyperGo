@@ -1,20 +1,21 @@
 package org.sawdust.goagain.shared.go.ai;
 
+import org.sawdust.goagain.shared.ai.FitnessValue;
 import org.sawdust.goagain.shared.ai.GameFitness;
+import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
 
 @SuppressWarnings("serial")
 public class GoGameJudgement implements GameFitness<GoGame> {
 
-  public double gameFitness(GoGame game, int playerIdx) {
-    // TODO: Update
-    if (null == game) return Integer.MIN_VALUE;
+  public IterativeResult<FitnessValue> gameFitness(GoGame game, int playerIdx) {
+    if (null == game) return wrap(FitnessValue.MIN_VALUE);
     int otherIdx = (playerIdx == 1) ? 2 : 1;
 
     if(game.winner != null)
     {
-      return game.winner.equals(playerIdx) ? Integer.MAX_VALUE : Integer.MIN_VALUE+1;
+      return wrap(game.winner.equals(playerIdx) ? FitnessValue.MAX_VALUE : FitnessValue.MIN_VALUE);
     }
     
     // Score-level fitness
@@ -72,7 +73,24 @@ public class GoGameJudgement implements GameFitness<GoGame> {
       fitness += bias * freedom * size;
     }
 
-    return fitness;
+    return wrap(fitness);
+  }
+
+  public static IterativeResult<FitnessValue> wrap(double fitness) {
+    return wrap(new FitnessValue(fitness, 0));
+  }
+
+  public static IterativeResult<FitnessValue> wrap(final FitnessValue f) {
+    return new IterativeResult<FitnessValue>() {
+      
+      public double think() {
+        return 1.;
+      }
+      
+      public FitnessValue best() {
+        return f;
+      }
+    };
   }
 
 }

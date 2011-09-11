@@ -20,7 +20,7 @@ public class AiController {
 
   public final class AiTask extends Timer {
     private double progress = 0;
-    private final IterativeResult<GoGame> contemplation;
+    private final IterativeResult<GameCommand<GoGame>> contemplation;
     private final AsyncCallback<Void> aiChainHandler;
     double reps = 10;
 

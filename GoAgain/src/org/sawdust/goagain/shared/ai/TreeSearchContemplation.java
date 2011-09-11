@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.go.GoGame;
 
-public class TreeSearchContemplation implements IterativeResult<GoGame> {
+public class TreeSearchContemplation implements IterativeResult<GameCommand<GoGame>> {
 
   private final MoveFitness<GoGame> intuition;
   private final GameFitness<GoGame> judgement;
@@ -49,7 +49,9 @@ public class TreeSearchContemplation implements IterativeResult<GoGame> {
     }
 
     protected void consider(GoGame hypotheticalGame) {
-      double fitness = judgement.gameFitness(hypotheticalGame, game.currentPlayer);
+      IterativeResult<FitnessValue> gameFitness = judgement.gameFitness(hypotheticalGame, game.currentPlayer);
+      while(1. > gameFitness.think()) {}
+      double fitness = gameFitness.best().fitness;
       if (fitness > bestFitness) {
         bestMove = thisMove;
         bestFitness = fitness;
