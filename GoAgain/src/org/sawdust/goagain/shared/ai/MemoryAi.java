@@ -21,9 +21,14 @@ public class MemoryAi<T extends Game<T>> implements Ai<T> {
 
         IterativeResult<Move<T>> innerMove = inner.newContemplation(game);
         GameMemoryTree.CachedMove<T> cachedMove = null;
+        double progress = 0;
         public double think() {
-          cachedMove = null;
-          return innerMove.think();
+          if(1. > progress)
+          {
+            cachedMove = null;
+            progress = innerMove.think();
+          }
+          return progress;
         }
 
         public Move<T> best() {
@@ -32,6 +37,14 @@ public class MemoryAi<T extends Game<T>> implements Ai<T> {
             cachedMove = new GameMemoryTree.CachedMove<T>(innerMove.best());
           }
           return cachedMove;
+        }
+
+        public void hint(Move<T> hint) {
+          if(1. > progress)
+          {
+            innerMove.hint(hint);
+            cachedMove = null;
+          }
         }
       };
       game.putCache(key, result);

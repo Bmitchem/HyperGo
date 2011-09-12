@@ -46,8 +46,8 @@ public class GoAI implements Ai<GoGame> {
     {
       @SuppressWarnings("unused") GameFitness<GoGame> judgement2 = true?new MemoryFitness<GoGame>(judgement):judgement;
       @SuppressWarnings("unused") Game<GoGame> game2 = false?new GameMemoryTree<GoGame>((GoGame) game):game;
-      SimpleFitnessAi<GoGame> ai = new SimpleFitnessAi<GoGame>(judgement2);
-      @SuppressWarnings("unused") Ai<GoGame> ai2 = true?new MemoryAi(ai):ai;
+      Ai<GoGame> ai = new SimpleFitnessAi<GoGame>(judgement2);
+      @SuppressWarnings("unused") Ai<GoGame> ai2 = true?new MemoryAi<GoGame>(ai):ai;
       Ai<GoGame> ai3 = new SimplePredictionAi<GoGame>(judgement2, ai2);
       return ai3.newContemplation(game2);
     }

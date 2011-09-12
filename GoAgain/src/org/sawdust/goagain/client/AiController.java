@@ -23,7 +23,7 @@ public class AiController {
     private double progress = 0;
     private final IterativeResult<Move<GoGame>> contemplation;
     private final AsyncCallback<Void> aiChainHandler;
-    double reps = 10;
+    double reps = 1;
 
     public AiTask(GoAI goAI, AsyncCallback<Void> aiChainHandler) {
       this.aiChainHandler = aiChainHandler;

@@ -13,13 +13,15 @@ public class GameMemoryTree<T extends Game<T>> extends Game<T> {
     Game<T> result = null;
 
     public CachedMove(Move<T> move) {
+      assert(null != move);
       this.move = move;
     }
 
     public Game<T> move() {
       if(null == result)
       {
-        result = new GameMemoryTree<T>(move.move());
+        result = move.move();
+        if(null != result) result = new GameMemoryTree<T>(result);
       }
       return result;
     }

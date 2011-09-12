@@ -42,6 +42,11 @@ public class MonteCarloFitness implements GameFitness<GoGame> {
         double confidence = 5 * Math.pow(total, -1.5);
         return new FitnessValue(mean, confidence);
       }
+
+      public void hint(FitnessValue hint) {
+        // TODO Auto-generated method stub
+        
+      }
     };
   }
 

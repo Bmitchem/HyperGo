@@ -91,6 +91,11 @@ public class GoGameJudgement implements GameFitness<GoGame> {
       public FitnessValue best() {
         return f;
       }
+
+      public void hint(FitnessValue hint) {
+        // TODO Auto-generated method stub
+        
+      }
     };
   }
 

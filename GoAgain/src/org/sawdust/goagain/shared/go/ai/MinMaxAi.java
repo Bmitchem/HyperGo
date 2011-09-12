@@ -158,4 +158,9 @@ public class MinMaxAi implements IterativeResult<Move<GoGame>> {
     return allMoves;
   }
 
+  public void hint(Move<GoGame> hint) {
+    // TODO Auto-generated method stub
+    
+  }
+
 }

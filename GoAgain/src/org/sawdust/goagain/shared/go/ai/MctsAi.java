@@ -198,4 +198,7 @@ public class MctsAi implements IterativeResult<Move<GoGame>> {
     return ((double)totalEvals++) / (scenarios);
   }
 
+  public void hint(Move<GoGame> hint) {
+  }
+
 }

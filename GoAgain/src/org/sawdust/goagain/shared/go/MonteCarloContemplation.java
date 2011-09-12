@@ -156,5 +156,10 @@ public class MonteCarloContemplation implements IterativeResult<Move<GoGame>>
     Move<GoGame> move = commands.get(0);
     return move;
   }
+
+  public void hint(Move<GoGame> hint) {
+    // TODO Auto-generated method stub
+    
+  }
   
 }
