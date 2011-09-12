@@ -1,14 +1,16 @@
 package org.sawdust.goagain.shared.ai;
 
 import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.go.Game;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
 import org.sawdust.goagain.shared.go.Util;
 
 @SuppressWarnings("serial")
-public class MonteCarloFitness<T> implements GameFitness<GoGame> {
+public class MonteCarloFitness<T extends Game<T>> implements GameFitness<T> {
 
-  public IterativeResult<FitnessValue> gameFitness(final GoGame game, final int playerIdx) {
+  public IterativeResult<FitnessValue> gameFitness(final Game<T> g, final int playerIdx) {
+    final GoGame game = (GoGame) g;
     return new IterativeResult<FitnessValue>() {
       int total = 0;
       int wins = 0;
@@ -26,7 +28,7 @@ public class MonteCarloFitness<T> implements GameFitness<GoGame> {
           while(null == newGame)
           {
             move = Util.randomValue(prevGame.getMoves());
-            newGame = move.move(prevGame);
+            newGame = (GoGame) move.move(prevGame).unwrap();
           }
           moveCount++;
           w = getWinner(prevGame, newGame, move);

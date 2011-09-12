@@ -15,12 +15,12 @@ import org.sawdust.goagain.shared.boards.BoardLayout;
 import org.sawdust.goagain.shared.go.ai.IslandContext;
 
 @SuppressWarnings("serial")
-public class GoGame implements Serializable {
+public class GoGame implements Game<GoGame>, Serializable {
 
   public static final class PassMove implements GameCommand<GoGame> {
 
-    public GoGame move(GoGame board) {
-      return board.pass();
+    public GoGame move(Game<GoGame> board) {
+      return ((GoGame)board).pass();
     }
 
     public String getCommandText() {
@@ -65,8 +65,8 @@ public class GoGame implements Serializable {
       return tile.toString();
     }
 
-    public GoGame move(GoGame board) {
-      return board.play(tile);
+    public GoGame move(Game<GoGame> board) {
+      return ((GoGame)board).play(tile);
     }
 
     @Override
@@ -500,6 +500,14 @@ public class GoGame implements Serializable {
 
   public BoardLayout getLayout() {
     return layout;
+  }
+
+  public int player() {
+    return currentPlayer;
+  }
+
+  public Game<GoGame> unwrap() {
+    return this;
   }
   
 }

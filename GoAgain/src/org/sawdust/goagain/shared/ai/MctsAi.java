@@ -8,9 +8,8 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.go.Game;
 import org.sawdust.goagain.shared.go.GoGame;
-import org.sawdust.goagain.shared.go.IslandNode;
-import org.sawdust.goagain.shared.go.Util;
 
 /**
  * See Also: 
@@ -21,18 +20,29 @@ import org.sawdust.goagain.shared.go.Util;
  * @author acharneski
  *
  */
-public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
-
-  final int maxGeneration = 4;
-  final boolean firstCaptureWins = true;
-  final GameFitness<GoGame> fitness = new MonteCarloFitness<GoGame>();
+public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
 
   public class Node {
-    final Map<GameCommand<GoGame>, Node> moves = new HashMap<GameCommand<GoGame>, MCTSContemplation.Node>();
+    final Map<GameCommand<GoGame>, Node> moves = new HashMap<GameCommand<GoGame>, MctsAi.Node>();
     final Node parent;
-    final GoGame game;
+    final Game<GoGame> game;
     final int generation;
 
+    IterativeResult<FitnessValue> fitnessEval = null;
+
+    private FitnessValue currentFitness;
+
+    public Node(GoGame game)
+    {
+      this.game = game;
+      this.parent = null;
+      this.generation = 0;
+
+      for(GameCommand<GoGame> m : getMoves(game))
+      {
+        moves.put(m, null);
+      }
+    }
     public Node(Node parent, GameCommand<GoGame> move, int generation) {
       this.parent = parent;
       this.generation = generation;
@@ -48,21 +58,21 @@ public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
         }
       }
     }
-
-    public Node(GoGame game)
+    private Node expand(GameCommand<GoGame> move)
     {
-      this.game = game;
-      this.parent = null;
-      this.generation = 0;
-
-      for(GameCommand<GoGame> m : getMoves(game))
+      Node node = new Node(this, move, generation+1);
+      if(null != node.game)
       {
-        moves.put(m, null);
+        moves.put(move, node);
+        return node;
+      }
+      else
+      {
+        moves.remove(move);
+        return null;
       }
     }
 
-    IterativeResult<FitnessValue> fitnessEval = null;
-    private FitnessValue currentFitness;
     private FitnessValue play()
     {
       if(null == fitnessEval)
@@ -71,6 +81,11 @@ public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
       }
       fitnessEval.think();
       return fitnessEval.best();
+    }
+
+    protected int player() {
+      if(null == parent) return -1;
+      return parent.game.player();
     }
 
     private Node select()
@@ -93,21 +108,6 @@ public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
       return null;
     }
 
-    private Node expand(GameCommand<GoGame> move)
-    {
-      Node node = new Node(this, move, generation+1);
-      if(null != node.game)
-      {
-        moves.put(move, node);
-        return node;
-      }
-      else
-      {
-        moves.remove(move);
-        return null;
-      }
-    }
-
     private TreeMap<Double, Entry<GameCommand<GoGame>, Node>> sortedChildren()
     {
       TreeMap<Double,Entry<GameCommand<GoGame>, Node>> sortedMoves = new TreeMap<Double,Map.Entry<GameCommand<GoGame>,Node>>();
@@ -126,11 +126,6 @@ public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
         sortedMoves.put(-winRatio, e);
       }
       return sortedMoves;
-    }
-
-    protected int player() {
-      if(null == parent) return -1;
-      return parent.game.currentPlayer;
     }
 
     @Override
@@ -168,18 +163,14 @@ public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
     
   }
 
-  final Node root;
-  private double scenarios = 10000;
+  private final Node root;
+  private final int maxGeneration = 2;
+  private final double scenarios = 5000;
+  private final GameFitness<GoGame> fitness = new MonteCarloFitness<GoGame>();
   private int totalEvals = 0;
 
-  public MCTSContemplation(GoGame game) {
+  public MctsAi(GoGame game) {
     this.root = new Node(game);
-  }
-
-  public double think() {
-    Node node = root.select();
-    node.updateFitness(node.play());
-    return ((double)totalEvals++) / (scenarios);
   }
 
   public GameCommand<GoGame> best() {
@@ -191,9 +182,15 @@ public class MCTSContemplation implements IterativeResult<GameCommand<GoGame>> {
     return sortedChildren.entrySet().iterator().next().getValue().getKey();
   }
 
-  protected Collection<GameCommand<GoGame>> getMoves(GoGame game)
+  protected Collection<GameCommand<GoGame>> getMoves(Game<GoGame> game)
   {
     return game.getMoves();
+  }
+
+  public double think() {
+    Node node = root.select();
+    node.updateFitness(node.play());
+    return ((double)totalEvals++) / (scenarios);
   }
 
 }

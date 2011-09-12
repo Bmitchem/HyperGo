@@ -2,6 +2,7 @@ package org.sawdust.goagain.client;
 
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.go.Game;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.ai.GoAI;
 
@@ -63,7 +64,10 @@ public class AiController {
         if(null != best)
         {
           GoBoardWidget board = AiController.this.goGameController.board;
-          board.setGame(best.move(board.getGame()));
+          GoGame game = board.getGame();
+          Game<GoGame> move = best.move(game);
+          Game<GoGame> unwrap = move.unwrap();
+          board.setGame((GoGame) unwrap);
           AiController.this.goGameController.saveState(aiChainHandler);
         }
         else

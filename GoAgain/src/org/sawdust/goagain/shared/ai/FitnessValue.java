@@ -1,6 +1,6 @@
 package org.sawdust.goagain.shared.ai;
 
-public class FitnessValue {
+public class FitnessValue implements Comparable<FitnessValue> {
   public static final FitnessValue MIN_VALUE = new FitnessValue(-1000000, 0);
   public static final FitnessValue MAX_VALUE = new FitnessValue(1000000, 0);
   public final double fitness;
@@ -22,5 +22,9 @@ public class FitnessValue {
     }
     fitness /= fitnessValues.length;
     return new FitnessValue(fitness, fitness / uncertianty);
+  }
+
+  public int compareTo(FitnessValue o) {
+    return Double.compare(fitness, o.fitness);
   }
 }

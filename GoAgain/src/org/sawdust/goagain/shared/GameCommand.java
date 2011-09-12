@@ -1,8 +1,10 @@
 package org.sawdust.goagain.shared;
 
-public interface GameCommand<T> {
+import org.sawdust.goagain.shared.go.Game;
 
-  T move(T board);
+public interface GameCommand<T extends Game<T>> {
+
+  Game<T> move(Game<T> game);
 
   String getCommandText();
 

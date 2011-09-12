@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import org.sawdust.goagain.shared.GameCommand;
 import org.sawdust.goagain.shared.go.GoGame;
 
-public class TreeSearchContemplation implements IterativeResult<GameCommand<GoGame>> {
+public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
 
   private final MoveFitness<GoGame> intuition;
   private final GameFitness<GoGame> judgement;
@@ -62,7 +62,7 @@ public class TreeSearchContemplation implements IterativeResult<GameCommand<GoGa
 
   final Stack<Frame> stack = new Stack<Frame>();
 
-  public TreeSearchContemplation(GoGame game, MoveFitness<GoGame> intuition, GameFitness<GoGame> judgement, int... breadth) {
+  public MinMaxAi(GoGame game, MoveFitness<GoGame> intuition, GameFitness<GoGame> judgement, int... breadth) {
     this.breadth = breadth;
     for (int b : breadth)
       breadthProduct *= b;
@@ -75,7 +75,7 @@ public class TreeSearchContemplation implements IterativeResult<GameCommand<GoGa
     Frame frame = stack.peek();
     if (frame.moves.hasNext() && frame.counter++ < frame.width) {
       frame.thisMove = frame.moves.next();
-      GoGame hypotheticalGame = frame.thisMove.move(frame.game);
+      GoGame hypotheticalGame = (GoGame) frame.thisMove.move(frame.game).unwrap();
       if (null != hypotheticalGame) {
         if (frame.game.winner == null && stack.size() < breadth.length) {
           this.stack.push(new Frame(hypotheticalGame, frame.denominator * frame.width));

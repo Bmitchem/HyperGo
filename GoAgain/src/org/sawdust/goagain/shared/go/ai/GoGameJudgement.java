@@ -3,13 +3,15 @@ package org.sawdust.goagain.shared.go.ai;
 import org.sawdust.goagain.shared.ai.FitnessValue;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.go.Game;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
 
 @SuppressWarnings("serial")
 public class GoGameJudgement implements GameFitness<GoGame> {
 
-  public IterativeResult<FitnessValue> gameFitness(GoGame game, int playerIdx) {
+  public IterativeResult<FitnessValue> gameFitness(Game<GoGame> g, int playerIdx) {
+    GoGame game = (GoGame) g.unwrap();
     if (null == game) return wrap(FitnessValue.MIN_VALUE);
     int otherIdx = (playerIdx == 1) ? 2 : 1;
 
