@@ -1,33 +1,33 @@
 package org.sawdust.goagain.shared.ai;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
-import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.go.Game;
+import org.sawdust.goagain.shared.Game;
+import org.sawdust.goagain.shared.Move;
 
-public class GameMemoryTree<T extends Game<T>> implements Game<T> {
+public class GameMemoryTree<T extends Game<T>> extends Game<T> {
 
-  T game;
-  ArrayList<GameCommand<T>> wrapped = null;
+  Game<T> game;
+  ArrayList<Move<T>> wrapped = null;
   
-  public GameMemoryTree(T game) {
+  public GameMemoryTree(Game<T> game2) {
     super();
-    this.game = game;
+    this.game = game2;
   }
 
-  public ArrayList<GameCommand<T>> getMoves() {
+  public Collection<? extends Move<T>> getMoves() {
     if(null == wrapped)
     {
-      wrapped = new ArrayList<GameCommand<T>>();
-      for(final GameCommand<T> move : game.getMoves())
+      wrapped = new ArrayList<Move<T>>();
+      for(final Move<T> move : game.getMoves())
       {
-        wrapped.add(new GameCommand<T>() {
-          T result = null;
-          @SuppressWarnings("unchecked")
-          public T move(Game<T> board) {
+        wrapped.add(new Move<T>() {
+          Game<T> result = null;
+          public Game<T> move(T board) {
             if(null == result)
             {
-              result = (T) new GameMemoryTree<T>((T) move.move(game));
+              result = new GameMemoryTree<T>(move.move(game.unwrap()));
             }
             return result;
           }
@@ -45,8 +45,18 @@ public class GameMemoryTree<T extends Game<T>> implements Game<T> {
     return game.player();
   }
 
-  public Game<T> unwrap() {
+  public T unwrap() {
     return game.unwrap();
+  }
+
+  @Override
+  public Object getCache(Object key) {
+    return game.getCache(key);
+  }
+
+  @Override
+  public void putCache(Object key, Object value) {
+    game.putCache(key, value);
   }
 
 }

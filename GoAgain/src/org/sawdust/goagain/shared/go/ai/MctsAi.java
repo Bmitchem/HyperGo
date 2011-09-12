@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared.ai;
+package org.sawdust.goagain.shared.go.ai;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -7,9 +7,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.go.Game;
+import org.sawdust.goagain.shared.Game;
+import org.sawdust.goagain.shared.Move;
+import org.sawdust.goagain.shared.ai.FitnessValue;
+import org.sawdust.goagain.shared.ai.GameFitness;
+import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.go.GoGame;
+import org.sawdust.goagain.shared.go.MonteCarloFitness;
 
 /**
  * See Also: 
@@ -20,10 +24,10 @@ import org.sawdust.goagain.shared.go.GoGame;
  * @author acharneski
  *
  */
-public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
+public class MctsAi implements IterativeResult<Move<GoGame>> {
 
   public class Node {
-    final Map<GameCommand<GoGame>, Node> moves = new HashMap<GameCommand<GoGame>, MctsAi.Node>();
+    final Map<Move<GoGame>, Node> moves = new HashMap<Move<GoGame>, MctsAi.Node>();
     final Node parent;
     final Game<GoGame> game;
     final int generation;
@@ -38,27 +42,27 @@ public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
       this.parent = null;
       this.generation = 0;
 
-      for(GameCommand<GoGame> m : getMoves(game))
+      for(Move<GoGame> m : getMoves(game))
       {
         moves.put(m, null);
       }
     }
-    public Node(Node parent, GameCommand<GoGame> move, int generation) {
+    public Node(Node parent, Move<GoGame> move, int generation) {
       this.parent = parent;
       this.generation = generation;
-      this.game = move.move(parent.game);
+      this.game = move.move(parent.game.unwrap());
       if(null != game)
       {
         if(maxGeneration > generation)
         {
-          for(GameCommand<GoGame> m : getMoves(game))
+          for(Move<GoGame> m : getMoves(game))
           {
             moves.put(m, null);
           }
         }
       }
     }
-    private Node expand(GameCommand<GoGame> move)
+    private Node expand(Move<GoGame> move)
     {
       Node node = new Node(this, move, generation+1);
       if(null != node.game)
@@ -77,7 +81,7 @@ public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
     {
       if(null == fitnessEval)
       {
-        fitnessEval = fitness.gameFitness(game, player());
+        fitnessEval = fitness.gameFitness(game.unwrap(), player());
       }
       fitnessEval.think();
       return fitnessEval.best();
@@ -91,10 +95,10 @@ public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
     private Node select()
     {
       if(generation >= maxGeneration) return this;
-      TreeMap<Double, Entry<GameCommand<GoGame>, Node>> sorted = sortedChildren();
-      for(Entry<GameCommand<GoGame>, Node> e : sorted.values())
+      TreeMap<Double, Entry<Move<GoGame>, Node>> sorted = sortedChildren();
+      for(Entry<Move<GoGame>, Node> e : sorted.values())
       {
-        GameCommand<GoGame> move = e.getKey();
+        Move<GoGame> move = e.getKey();
         if(null != e.getValue())
         {
           return e.getValue().select();
@@ -108,10 +112,10 @@ public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
       return null;
     }
 
-    private TreeMap<Double, Entry<GameCommand<GoGame>, Node>> sortedChildren()
+    private TreeMap<Double, Entry<Move<GoGame>, Node>> sortedChildren()
     {
-      TreeMap<Double,Entry<GameCommand<GoGame>, Node>> sortedMoves = new TreeMap<Double,Map.Entry<GameCommand<GoGame>,Node>>();
-      for(Entry<GameCommand<GoGame>, Node> e : moves.entrySet())
+      TreeMap<Double,Entry<Move<GoGame>, Node>> sortedMoves = new TreeMap<Double,Map.Entry<Move<GoGame>,Node>>();
+      for(Entry<Move<GoGame>, Node> e : moves.entrySet())
       {
         Node node = e.getValue();
         double winRatio;
@@ -166,25 +170,26 @@ public class MctsAi implements IterativeResult<GameCommand<GoGame>> {
   private final Node root;
   private final int maxGeneration = 2;
   private final double scenarios = 5000;
-  private final GameFitness<GoGame> fitness = new MonteCarloFitness<GoGame>();
+  private final GameFitness<GoGame> fitness = new MonteCarloFitness();
   private int totalEvals = 0;
 
   public MctsAi(GoGame game) {
     this.root = new Node(game);
   }
 
-  public GameCommand<GoGame> best() {
-    TreeMap<Double, Entry<GameCommand<GoGame>, Node>> sortedChildren = root.sortedChildren();
-    for(Entry<Double, Entry<GameCommand<GoGame>, Node>> e : sortedChildren.entrySet())
+  public Move<GoGame> best() {
+    TreeMap<Double, Entry<Move<GoGame>, Node>> sortedChildren = root.sortedChildren();
+    for(Entry<Double, Entry<Move<GoGame>, Node>> e : sortedChildren.entrySet())
     {
       System.out.println(e.getKey() + " - " + e.getValue().getKey().toString() + " - " + e.getValue().getValue().toString());
     }
     return sortedChildren.entrySet().iterator().next().getValue().getKey();
   }
 
-  protected Collection<GameCommand<GoGame>> getMoves(Game<GoGame> game)
+  @SuppressWarnings("unchecked")
+  protected Collection<Move<GoGame>> getMoves(Game<GoGame> game)
   {
-    return game.getMoves();
+    return (Collection<Move<GoGame>>) game.getMoves();
   }
 
   public double think() {

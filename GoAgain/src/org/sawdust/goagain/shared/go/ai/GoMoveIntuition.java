@@ -3,7 +3,7 @@ package org.sawdust.goagain.shared.go.ai;
 import java.util.Map;
 import java.util.Set;
 
-import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.Move;
 import org.sawdust.goagain.shared.ai.MoveFitness;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
@@ -12,12 +12,12 @@ import org.sawdust.goagain.shared.go.Tile;
 @SuppressWarnings("serial")
 public class GoMoveIntuition implements MoveFitness<GoGame> {
   
-  public double moveFitness(GameCommand<GoGame> o1, GoGame game)
+  public double moveFitness(Move<GoGame> o1, GoGame game)
   {
     double x = 1;
-    if(o1 instanceof GoGame.Move)
+    if(o1 instanceof GoGame.PlaceMove)
     {
-      GoGame.Move move = ((GoGame.Move)o1);
+      GoGame.PlaceMove move = ((GoGame.PlaceMove)o1);
       
       IslandNode space = game.getIsland(move.tile);
       if(space.geometry.thin().getSize() < 2)

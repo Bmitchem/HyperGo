@@ -1,16 +1,15 @@
-package org.sawdust.goagain.shared.ai;
+package org.sawdust.goagain.shared.go;
 
-import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.go.Game;
-import org.sawdust.goagain.shared.go.GoGame;
-import org.sawdust.goagain.shared.go.IslandNode;
-import org.sawdust.goagain.shared.go.Util;
+import org.sawdust.goagain.shared.Move;
+import org.sawdust.goagain.shared.Util;
+import org.sawdust.goagain.shared.ai.FitnessValue;
+import org.sawdust.goagain.shared.ai.GameFitness;
+import org.sawdust.goagain.shared.ai.IterativeResult;
 
 @SuppressWarnings("serial")
-public class MonteCarloFitness<T extends Game<T>> implements GameFitness<T> {
+public class MonteCarloFitness implements GameFitness<GoGame> {
 
-  public IterativeResult<FitnessValue> gameFitness(final Game<T> g, final int playerIdx) {
-    final GoGame game = (GoGame) g;
+  public IterativeResult<FitnessValue> gameFitness(final GoGame game, final int playerIdx) {
     return new IterativeResult<FitnessValue>() {
       int total = 0;
       int wins = 0;
@@ -18,7 +17,7 @@ public class MonteCarloFitness<T extends Game<T>> implements GameFitness<T> {
       public double think() {
         GoGame prevGame = null;
         GoGame newGame = game;
-        GameCommand<GoGame> move = null;
+        Move<GoGame> move = null;
         Integer w = null;
         int moveCount = 0;
         do
@@ -27,7 +26,7 @@ public class MonteCarloFitness<T extends Game<T>> implements GameFitness<T> {
           newGame = null;
           while(null == newGame)
           {
-            move = Util.randomValue(prevGame.getMoves());
+            move = (Move<GoGame>) Util.randomValue(prevGame.getMoves());
             newGame = (GoGame) move.move(prevGame).unwrap();
           }
           moveCount++;
@@ -48,22 +47,22 @@ public class MonteCarloFitness<T extends Game<T>> implements GameFitness<T> {
 
 
   boolean firstCaptureWins = true;
-  protected Integer getWinner(GoGame prevGame, GoGame game, GameCommand<GoGame> move)
+  protected Integer getWinner(GoGame prevGame, GoGame newGame, Move<GoGame> move)
   {
     Integer w;
-    if(null != game.winner)
+    if(null != newGame.winner)
     {
-      w = game.winner;
+      w = newGame.winner;
     }
     else
     {
       if(null != prevGame && firstCaptureWins)
       {
-        if(count(game, prevGame.currentPlayer) < 1 + count(prevGame, prevGame.currentPlayer))
+        if(count(newGame, prevGame.currentPlayer) < 1 + count(prevGame, prevGame.currentPlayer))
         {
-          w = game.currentPlayer;
+          w = newGame.currentPlayer;
         }
-        else if(count(game, game.currentPlayer) < count(prevGame, game.currentPlayer))
+        else if(count(newGame, newGame.currentPlayer) < count(prevGame, newGame.currentPlayer))
         {
           w = prevGame.currentPlayer;
         }

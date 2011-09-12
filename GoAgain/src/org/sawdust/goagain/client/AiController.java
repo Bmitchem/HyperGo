@@ -1,8 +1,8 @@
 package org.sawdust.goagain.client;
 
-import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.Game;
+import org.sawdust.goagain.shared.Move;
 import org.sawdust.goagain.shared.ai.IterativeResult;
-import org.sawdust.goagain.shared.go.Game;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.ai.GoAI;
 
@@ -21,7 +21,7 @@ public class AiController {
 
   public final class AiTask extends Timer {
     private double progress = 0;
-    private final IterativeResult<GameCommand<GoGame>> contemplation;
+    private final IterativeResult<Move<GoGame>> contemplation;
     private final AsyncCallback<Void> aiChainHandler;
     double reps = 10;
 
@@ -60,7 +60,7 @@ public class AiController {
 
     protected void finish() {
       try {
-        GameCommand<GoGame> best = contemplation.best();
+        Move<GoGame> best = contemplation.best();
         if(null != best)
         {
           GoBoardWidget board = AiController.this.goGameController.board;

@@ -3,8 +3,8 @@ package org.sawdust.goagain.shared.ai;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.go.Game;
+import org.sawdust.goagain.shared.Game;
+import org.sawdust.goagain.shared.Move;
 
 @SuppressWarnings("serial")
 public class SimpleFitnessAi<T extends Game<T>> implements Ai<T> {
@@ -16,33 +16,36 @@ public class SimpleFitnessAi<T extends Game<T>> implements Ai<T> {
     this.fitness = fitness;
   }
 
-  public IterativeResult<GameCommand<T>> newContemplation(final Game<T> game) {
-    return new IterativeResult<GameCommand<T>>() {
+  public IterativeResult<Move<T>> newContemplation(final Game<T> game) {
+    return new IterativeResult<Move<T>>() {
       
-      GameCommand<T> best = null;
+      Move<T> best = null;
       FitnessValue bestFitness = null;
-      Collection<GameCommand<T>> moves = game.getMoves();
+      @SuppressWarnings("unchecked") Collection<Move<T>> moves = (Collection<Move<T>>) game.getMoves();
       int size = moves.size();
-      Iterator<GameCommand<T>> iterator = moves.iterator();
+      Iterator<Move<T>> iterator = moves.iterator();
       double progress = 0;
       
       public double think() {
         if(!iterator.hasNext()) return 1.;
-        GameCommand<T> move = iterator.next();
-        Game<T> newGame = move.move(game);
-        IterativeResult<FitnessValue> result = fitness.gameFitness(newGame, game.player());
-        while(1. > result.think()){}
-        FitnessValue gameFitness = result.best();
-        if(null == bestFitness || bestFitness.compareTo(gameFitness) < 0)
+        Move<T> move = iterator.next();
+        Game<T> newGame = move.move(game.unwrap());
+        if(null != newGame)
         {
-          best = move;
-          bestFitness = gameFitness;
+          IterativeResult<FitnessValue> result = fitness.gameFitness(newGame.unwrap(), game.player());
+          while(1. > result.think()){}
+          FitnessValue gameFitness = result.best();
+          if(null == bestFitness || bestFitness.compareTo(gameFitness) < 0)
+          {
+            best = move;
+            bestFitness = gameFitness;
+          }
         }
         progress += 1. / size;
         return progress;
       }
       
-      public GameCommand<T> best() {
+      public Move<T> best() {
         return best;
       }
     };

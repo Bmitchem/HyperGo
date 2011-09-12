@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared.ai;
+package org.sawdust.goagain.shared.go.ai;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,10 +9,14 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.TreeSet;
 
-import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.Move;
+import org.sawdust.goagain.shared.ai.FitnessValue;
+import org.sawdust.goagain.shared.ai.GameFitness;
+import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.ai.MoveFitness;
 import org.sawdust.goagain.shared.go.GoGame;
 
-public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
+public class MinMaxAi implements IterativeResult<Move<GoGame>> {
 
   private final MoveFitness<GoGame> intuition;
   private final GameFitness<GoGame> judgement;
@@ -23,10 +27,10 @@ public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
 
   public class Frame {
     final GoGame game;
-    final Iterator<GameCommand<GoGame>> moves;
+    final Iterator<Move<GoGame>> moves;
 
-    GameCommand<GoGame> thisMove = null;
-    GameCommand<GoGame> bestMove = null;
+    Move<GoGame> thisMove = null;
+    Move<GoGame> bestMove = null;
     double bestFitness = Integer.MIN_VALUE;
     GoGame bestEndGame = null;
 
@@ -42,7 +46,7 @@ public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
       this.width = b;
       this.game = game;
       this.counter = 0;
-      Collection<GameCommand<GoGame>> nextMoves = intuition(game);
+      Collection<Move<GoGame>> nextMoves = intuition(game);
       if (this.width > nextMoves.size()) this.width = nextMoves.size();
       this.moves = nextMoves.iterator();
       this.denominator = denominator;
@@ -95,20 +99,20 @@ public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
     return totalProgress;
   }
 
-  public GameCommand<GoGame> best() {
+  public Move<GoGame> best() {
     for (Frame f : stack) {
       if (null != f.bestMove) return f.bestMove;
     }
     return null;
   }
 
-  protected Collection<GameCommand<GoGame>> intuition(final GoGame game) {
-    ArrayList<GameCommand<GoGame>> allMoves = game.getMoves();
+  protected Collection<Move<GoGame>> intuition(final GoGame game) {
+    ArrayList<Move<GoGame>> allMoves = game.getMoves();
     if (null != intuition) {
-      final Map<GameCommand<GoGame>, Double> fitnessCache = new HashMap<GameCommand<GoGame>, Double>();
-      TreeSet<GameCommand<GoGame>> sortedMoves = new TreeSet<GameCommand<GoGame>>(new Comparator<GameCommand<GoGame>>()
+      final Map<Move<GoGame>, Double> fitnessCache = new HashMap<Move<GoGame>, Double>();
+      TreeSet<Move<GoGame>> sortedMoves = new TreeSet<Move<GoGame>>(new Comparator<Move<GoGame>>()
           {
-            public int compare(GameCommand<GoGame> o1, GameCommand<GoGame> o2)
+            public int compare(Move<GoGame> o1, Move<GoGame> o2)
             {
               double v1 = getFitness(o1);
               double v2 = getFitness(o2);
@@ -117,7 +121,7 @@ public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
               return compare1;
             }
 
-            protected double getFitness(GameCommand<GoGame> move) {
+            protected double getFitness(Move<GoGame> move) {
               double fitness;
               if (!fitnessCache.containsKey(move)) {
                 fitness = intuition.moveFitness(move, game);
@@ -132,7 +136,7 @@ public class MinMaxAi implements IterativeResult<GameCommand<GoGame>> {
           });
       // Not allowed in GWT:
       // Collections.shuffle(m);
-      for (GameCommand<GoGame> move : allMoves) {
+      for (Move<GoGame> move : allMoves) {
         double fitness = 0;
         if (!fitnessCache.containsKey(move)) {
           fitness = intuition.moveFitness(move, game);

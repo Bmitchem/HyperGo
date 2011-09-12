@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared.go;
+package org.sawdust.goagain.shared;
 
 import java.util.Collection;
 import java.util.Iterator;

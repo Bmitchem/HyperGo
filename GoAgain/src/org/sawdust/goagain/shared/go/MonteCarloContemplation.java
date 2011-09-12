@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared.ai;
+package org.sawdust.goagain.shared.go;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -6,11 +6,14 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.sawdust.goagain.shared.GameCommand;
-import org.sawdust.goagain.shared.go.GoGame;
+import org.sawdust.goagain.shared.Move;
+import org.sawdust.goagain.shared.ai.FitnessValue;
+import org.sawdust.goagain.shared.ai.GameFitness;
+import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.ai.MoveFitness;
 import org.sawdust.goagain.shared.go.ai.GoAI;
 
-public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGame>>
+public class MonteCarloContemplation implements IterativeResult<Move<GoGame>>
 {
   /**
    * 
@@ -21,7 +24,7 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
   {
     List<Double> fitness = new ArrayList<Double>();
     List<Boolean> isAlly = new ArrayList<Boolean>();
-    List<GameCommand<GoGame>> commands = new ArrayList<GameCommand<GoGame>>();
+    List<Move<GoGame>> commands = new ArrayList<Move<GoGame>>();
 
     public Scenario(GoGame game, int depth) {
       GoGame end = game.cloneGame();
@@ -31,7 +34,7 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
       fitness.add(gameFitness.best().fitness);
       for(int i=0; i<depth; i++)
       {
-        GameCommand<GoGame> move = weightedRandomMove(end);
+        Move<GoGame> move = weightedRandomMove(end);
         end = addMove(end, player, move);
       }
     }
@@ -48,7 +51,7 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
       return a;
     }
 
-    protected GoGame addMove(GoGame end, int player, GameCommand<GoGame> move) {
+    protected GoGame addMove(GoGame end, int player, Move<GoGame> move) {
       end = (GoGame) move.move(end).unwrap();
       boolean ally = end.currentPlayer == player;
       IterativeResult<FitnessValue> gameFitness = judgement.gameFitness(end, player);
@@ -59,10 +62,10 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
       return end;
     }
 
-    protected GameCommand<GoGame> weightedRandomMove(GoGame end) {
+    protected Move<GoGame> weightedRandomMove(GoGame end) {
       double total = 0;
-      TreeMap<Double,GameCommand<GoGame>> commandSpace = new TreeMap<Double, GameCommand<GoGame>>();
-      for(GameCommand<GoGame> c : end.getMoves())
+      TreeMap<Double,Move<GoGame>> commandSpace = new TreeMap<Double, Move<GoGame>>();
+      for(Move<GoGame> c : end.getMoves())
       {
         commandSpace.put(total, c);
         double moveFitness = intuition.moveFitness(c, end);
@@ -70,7 +73,7 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
         total += moveFitness;
       }
       Double floorKey = GoAI.floorKey(commandSpace, total * Math.random());
-      GameCommand<GoGame> move = commandSpace.get(floorKey);
+      Move<GoGame> move = commandSpace.get(floorKey);
       return move;
     }
 
@@ -87,7 +90,7 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
       scenario.fitness.add(gameFitness.best().fitness);
       for(int i=0; i<commands.size(); i++)
       {
-        GameCommand<GoGame> move;
+        Move<GoGame> move;
         if (i != step) {
           move = commands.get(i);
         }
@@ -147,10 +150,10 @@ public class MonteCarloContemplation implements IterativeResult<GameCommand<GoGa
     return ((double)counter) / breadth;
   }
 
-  public GameCommand<GoGame> best() {
+  public Move<GoGame> best() {
     Scenario best = scenarios.last();
-    List<GameCommand<GoGame>> commands = best.commands;
-    GameCommand<GoGame> move = commands.get(0);
+    List<Move<GoGame>> commands = best.commands;
+    Move<GoGame> move = commands.get(0);
     return move;
   }
   

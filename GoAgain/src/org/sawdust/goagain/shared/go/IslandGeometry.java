@@ -3,9 +3,7 @@ package org.sawdust.goagain.shared.go;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 @SuppressWarnings("serial")
@@ -133,7 +131,7 @@ public class IslandGeometry implements Serializable {
     return list;
   }
 
-  private boolean checkSplit(Tile tile, ArrayList<IslandGeometry> list) {
+  protected boolean checkSplit(Tile tile, ArrayList<IslandGeometry> list) {
     Set<Tile> allTiles = new HashSet<Tile>(getPositions());
     if(!allTiles.contains(tile))
     {

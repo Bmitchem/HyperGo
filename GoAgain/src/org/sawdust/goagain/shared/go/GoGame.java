@@ -10,16 +10,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.sawdust.goagain.shared.GameCommand;
+import org.sawdust.goagain.shared.Game;
+import org.sawdust.goagain.shared.Move;
+import org.sawdust.goagain.shared.Util;
 import org.sawdust.goagain.shared.boards.BoardLayout;
 import org.sawdust.goagain.shared.go.ai.IslandContext;
 
 @SuppressWarnings("serial")
-public class GoGame implements Game<GoGame>, Serializable {
+public class GoGame extends Game<GoGame> implements Serializable {
 
-  public static final class PassMove implements GameCommand<GoGame> {
+  public static final class PassMove implements Move<GoGame> {
 
-    public GoGame move(Game<GoGame> board) {
+    public GoGame move(GoGame board) {
       return ((GoGame)board).pass();
     }
 
@@ -54,10 +56,10 @@ public class GoGame implements Game<GoGame>, Serializable {
     
   }
 
-  public static final class Move implements GameCommand<GoGame> {
+  public static final class PlaceMove implements Move<GoGame> {
     public final Tile tile;
 
-    public Move(Tile tile) {
+    public PlaceMove(Tile tile) {
       this.tile = tile;
     }
 
@@ -65,7 +67,7 @@ public class GoGame implements Game<GoGame>, Serializable {
       return tile.toString();
     }
 
-    public GoGame move(Game<GoGame> board) {
+    public GoGame move(GoGame board) {
       return ((GoGame)board).play(tile);
     }
 
@@ -84,7 +86,7 @@ public class GoGame implements Game<GoGame>, Serializable {
       if (this == obj) return true;
       if (obj == null) return false;
       if (getClass() != obj.getClass()) return false;
-      Move other = (Move) obj;
+      PlaceMove other = (PlaceMove) obj;
       if (tile == null)
       {
         if (other.tile != null) return false;
@@ -160,8 +162,8 @@ public class GoGame implements Game<GoGame>, Serializable {
     return null;
   }
 
-  public ArrayList<GameCommand<GoGame>> getMoves() {
-    ArrayList<GameCommand<GoGame>> list = new ArrayList<GameCommand<GoGame>>();
+  public ArrayList<Move<GoGame>> getMoves() {
+    ArrayList<Move<GoGame>> list = new ArrayList<Move<GoGame>>();
     if(null == winner)
     {
       for(final IslandNode i : islands.values())
@@ -179,7 +181,7 @@ public class GoGame implements Game<GoGame>, Serializable {
           }
           for(final Tile tile : i.geometry.getPositions())
           {
-            list.add(new Move(tile));
+            list.add(new PlaceMove(tile));
           }
         }
       }
@@ -506,7 +508,7 @@ public class GoGame implements Game<GoGame>, Serializable {
     return currentPlayer;
   }
 
-  public Game<GoGame> unwrap() {
+  public GoGame unwrap() {
     return this;
   }
   
