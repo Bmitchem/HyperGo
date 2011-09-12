@@ -79,7 +79,7 @@ public class MinMaxAi implements IterativeResult<Move<GoGame>> {
     Frame frame = stack.peek();
     if (frame.moves.hasNext() && frame.counter++ < frame.width) {
       frame.thisMove = frame.moves.next();
-      GoGame hypotheticalGame = (GoGame) frame.thisMove.move(frame.game).unwrap();
+      GoGame hypotheticalGame = (GoGame) frame.thisMove.move().unwrap();
       if (null != hypotheticalGame) {
         if (frame.game.winner == null && stack.size() < breadth.length) {
           this.stack.push(new Frame(hypotheticalGame, frame.denominator * frame.width));

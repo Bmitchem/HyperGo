@@ -29,7 +29,7 @@ public class SimpleFitnessAi<T extends Game<T>> implements Ai<T> {
       public double think() {
         if(!iterator.hasNext()) return 1.;
         Move<T> move = iterator.next();
-        Game<T> newGame = move.move(game.unwrap());
+        Game<T> newGame = move.move();
         if(null != newGame)
         {
           IterativeResult<FitnessValue> result = fitness.gameFitness(newGame.unwrap(), game.player());

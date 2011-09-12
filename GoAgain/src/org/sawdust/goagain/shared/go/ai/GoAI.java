@@ -8,6 +8,7 @@ import org.sawdust.goagain.shared.ai.Ai;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.GameMemoryTree;
 import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.ai.MemoryAi;
 import org.sawdust.goagain.shared.ai.MemoryFitness;
 import org.sawdust.goagain.shared.ai.MoveFitness;
 import org.sawdust.goagain.shared.ai.SimpleFitnessAi;
@@ -43,10 +44,12 @@ public class GoAI implements Ai<GoGame> {
     }
     else if(useExperiment)
     {
-      GameFitness<GoGame> judgement2 = false?new MemoryFitness<GoGame>(judgement):judgement;
-      Game<GoGame> game2 = false?new GameMemoryTree<GoGame>((GoGame) game):game;
-      Ai<GoGame> ai = new SimplePredictionAi<GoGame>(judgement2, new SimpleFitnessAi<GoGame>(judgement2));
-      return ai.newContemplation(game2);
+      @SuppressWarnings("unused") GameFitness<GoGame> judgement2 = true?new MemoryFitness<GoGame>(judgement):judgement;
+      @SuppressWarnings("unused") Game<GoGame> game2 = false?new GameMemoryTree<GoGame>((GoGame) game):game;
+      SimpleFitnessAi<GoGame> ai = new SimpleFitnessAi<GoGame>(judgement2);
+      @SuppressWarnings("unused") Ai<GoGame> ai2 = true?new MemoryAi(ai):ai;
+      Ai<GoGame> ai3 = new SimplePredictionAi<GoGame>(judgement2, ai2);
+      return ai3.newContemplation(game2);
     }
     else
     {

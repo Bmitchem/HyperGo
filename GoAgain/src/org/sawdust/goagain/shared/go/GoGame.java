@@ -19,10 +19,10 @@ import org.sawdust.goagain.shared.go.ai.IslandContext;
 @SuppressWarnings("serial")
 public class GoGame extends Game<GoGame> implements Serializable {
 
-  public static final class PassMove implements Move<GoGame> {
+  public final class PassMove implements Move<GoGame> {
 
-    public GoGame move(GoGame board) {
-      return ((GoGame)board).pass();
+    public GoGame move() {
+      return GoGame.this.pass();
     }
 
     public String getCommandText() {
@@ -56,7 +56,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
     
   }
 
-  public static final class PlaceMove implements Move<GoGame> {
+  public final class PlaceMove implements Move<GoGame> {
     public final Tile tile;
 
     public PlaceMove(Tile tile) {
@@ -67,8 +67,8 @@ public class GoGame extends Game<GoGame> implements Serializable {
       return tile.toString();
     }
 
-    public GoGame move(GoGame board) {
-      return ((GoGame)board).play(tile);
+    public GoGame move() {
+      return GoGame.this.play(tile);
     }
 
     @Override

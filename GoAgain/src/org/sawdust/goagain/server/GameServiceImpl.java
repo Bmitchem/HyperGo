@@ -77,7 +77,7 @@ public class GameServiceImpl extends RemoteServiceServlet implements GameService
       }
     }
     Move<GoGame> move = contemplation.best();
-    game = (GoGame) move.move(game).unwrap();
+    game = (GoGame) move.move().unwrap();
     return game;
   };
 

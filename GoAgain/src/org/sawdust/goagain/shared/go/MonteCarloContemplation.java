@@ -52,7 +52,7 @@ public class MonteCarloContemplation implements IterativeResult<Move<GoGame>>
     }
 
     protected GoGame addMove(GoGame end, int player, Move<GoGame> move) {
-      end = (GoGame) move.move(end).unwrap();
+      end = (GoGame) move.move().unwrap();
       boolean ally = end.currentPlayer == player;
       IterativeResult<FitnessValue> gameFitness = judgement.gameFitness(end, player);
       while(1. > gameFitness.think()) {}

@@ -31,19 +31,22 @@ public class SimplePredictionAi<T extends Game<T>> implements Ai<T> {
       public double think() {
         if(!iterator.hasNext()) return 1.;
         Move<T> move = iterator.next();
-        Game<T> newGame = move.move(game.unwrap());
-        IterativeResult<Move<T>> opponentContemplation = opponent.newContemplation(newGame);
-        while(1. > opponentContemplation.think());
-        newGame = opponentContemplation.best().move(newGame.unwrap());
-        IterativeResult<FitnessValue> result = fitness.gameFitness(newGame.unwrap(), game.player());
-        while(1. > result.think()){}
-        FitnessValue gameFitness = result.best();
-        if(null == bestFitness || bestFitness.compareTo(gameFitness) < 0)
+        Game<T> newGame = move.move();
+        if(null != newGame)
         {
-          best = move;
-          bestFitness = gameFitness;
+          IterativeResult<Move<T>> opponentContemplation = opponent.newContemplation(newGame);
+          while(1. > opponentContemplation.think());
+          newGame = opponentContemplation.best().move();
+          IterativeResult<FitnessValue> result = fitness.gameFitness(newGame.unwrap(), game.player());
+          while(1. > result.think()){}
+          FitnessValue gameFitness = result.best();
+          if(null == bestFitness || bestFitness.compareTo(gameFitness) < 0)
+          {
+            best = move;
+            bestFitness = gameFitness;
+          }
+          progress += 1. / size;
         }
-        progress += 1. / size;
         return progress;
       }
       

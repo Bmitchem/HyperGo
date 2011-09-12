@@ -8,6 +8,27 @@ import org.sawdust.goagain.shared.Move;
 
 public class GameMemoryTree<T extends Game<T>> extends Game<T> {
 
+  public static final class CachedMove<T extends Game<T>> implements Move<T> {
+    private final Move<T> move;
+    Game<T> result = null;
+
+    public CachedMove(Move<T> move) {
+      this.move = move;
+    }
+
+    public Game<T> move() {
+      if(null == result)
+      {
+        result = new GameMemoryTree<T>(move.move());
+      }
+      return result;
+    }
+
+    public String getCommandText() {
+      return move.getCommandText();
+    }
+  }
+
   Game<T> game;
   ArrayList<Move<T>> wrapped = null;
   
@@ -22,20 +43,7 @@ public class GameMemoryTree<T extends Game<T>> extends Game<T> {
       wrapped = new ArrayList<Move<T>>();
       for(final Move<T> move : game.getMoves())
       {
-        wrapped.add(new Move<T>() {
-          Game<T> result = null;
-          public Game<T> move(T board) {
-            if(null == result)
-            {
-              result = new GameMemoryTree<T>(move.move(game.unwrap()));
-            }
-            return result;
-          }
-          
-          public String getCommandText() {
-            return move.getCommandText();
-          }
-        });
+        wrapped.add(new CachedMove<T>(move));
       }
     }
     return wrapped;

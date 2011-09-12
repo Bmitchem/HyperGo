@@ -64,8 +64,7 @@ public class AiController {
         if(null != best)
         {
           GoBoardWidget board = AiController.this.goGameController.board;
-          GoGame game = board.getGame();
-          Game<GoGame> move = best.move(game);
+          Game<GoGame> move = best.move();
           Game<GoGame> unwrap = move.unwrap();
           board.setGame((GoGame) unwrap);
           AiController.this.goGameController.saveState(aiChainHandler);

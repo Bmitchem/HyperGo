@@ -27,7 +27,7 @@ public class MonteCarloFitness implements GameFitness<GoGame> {
           while(null == newGame)
           {
             move = (Move<GoGame>) Util.randomValue(prevGame.getMoves());
-            newGame = (GoGame) move.move(prevGame).unwrap();
+            newGame = (GoGame) move.move().unwrap();
           }
           moveCount++;
           w = getWinner(prevGame, newGame, move);

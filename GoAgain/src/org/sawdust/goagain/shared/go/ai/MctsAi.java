@@ -50,7 +50,7 @@ public class MctsAi implements IterativeResult<Move<GoGame>> {
     public Node(Node parent, Move<GoGame> move, int generation) {
       this.parent = parent;
       this.generation = generation;
-      this.game = move.move(parent.game.unwrap());
+      this.game = move.move();
       if(null != game)
       {
         if(maxGeneration > generation)
