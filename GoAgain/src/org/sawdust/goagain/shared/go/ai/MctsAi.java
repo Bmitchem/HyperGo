@@ -12,6 +12,7 @@ import org.sawdust.goagain.shared.Move;
 import org.sawdust.goagain.shared.ai.FitnessValue;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.ai.Ai.GameProjection;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.MonteCarloFitness;
 
@@ -24,7 +25,7 @@ import org.sawdust.goagain.shared.go.MonteCarloFitness;
  * @author acharneski
  *
  */
-public class MctsAi implements IterativeResult<Move<GoGame>> {
+public class MctsAi implements IterativeResult<GameProjection<GoGame>> {
 
   public class Node {
     final Map<Move<GoGame>, Node> moves = new HashMap<Move<GoGame>, MctsAi.Node>();
@@ -177,13 +178,13 @@ public class MctsAi implements IterativeResult<Move<GoGame>> {
     this.root = new Node(game);
   }
 
-  public Move<GoGame> best() {
+  public GameProjection<GoGame> best() {
     TreeMap<Double, Entry<Move<GoGame>, Node>> sortedChildren = root.sortedChildren();
     for(Entry<Double, Entry<Move<GoGame>, Node>> e : sortedChildren.entrySet())
     {
       System.out.println(e.getKey() + " - " + e.getValue().getKey().toString() + " - " + e.getValue().getValue().toString());
     }
-    return sortedChildren.entrySet().iterator().next().getValue().getKey();
+    return new GameProjection<GoGame>(sortedChildren.entrySet().iterator().next().getValue().getKey());
   }
 
   @SuppressWarnings("unchecked")
@@ -198,7 +199,7 @@ public class MctsAi implements IterativeResult<Move<GoGame>> {
     return ((double)totalEvals++) / (scenarios);
   }
 
-  public void hint(Move<GoGame> hint) {
+  public void hint(GameProjection<GoGame> hint) {
   }
 
 }

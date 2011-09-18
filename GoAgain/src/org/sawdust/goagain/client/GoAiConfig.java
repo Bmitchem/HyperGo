@@ -19,12 +19,16 @@ public class GoAiConfig extends Widget {
     {
       HorizontalPanel panel = new HorizontalPanel();
       panel.add(new Label("Depth: "));
-      TextBox v = new TextBox();
-      v.setValue(ai.depth);
+      final TextBox v = new TextBox();
+      v.setValue(Integer.toString(ai.depth));
       panel.add(v);
       v.addValueChangeHandler(new ValueChangeHandler<String>() {
         public void onValueChange(ValueChangeEvent<String> event) {
-          ai.depth = event.getValue();
+          try {
+            ai.depth = Integer.parseInt(event.getValue());
+          } catch (NumberFormatException e) {
+            v.setValue(Integer.toString(ai.depth));
+          }
         }
       });
       verticalPanel.add(panel);
@@ -42,11 +46,11 @@ public class GoAiConfig extends Widget {
     }
     
     {
-      CheckBox v = new CheckBox("Use MCTS ");
-      v.setValue(ai.useMCTS);
+      CheckBox v = new CheckBox("Experimental ");
+      v.setValue(ai.useExperiment);
       v.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
         public void onValueChange(ValueChangeEvent<Boolean> event) {
-          ai.useMCTS = event.getValue();
+          ai.useExperiment = event.getValue();
         }
       });
       verticalPanel.add(v);

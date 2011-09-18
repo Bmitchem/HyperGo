@@ -1,5 +1,6 @@
 package org.sawdust.goagain.shared.go.ai;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,36 +46,36 @@ public class GoMoveIntuition implements MoveFitness<GoGame> {
         }
       }
       
-//      int playerIdx = game.currentPlayer;
-//      int freindlyCount = 0;
-//      int enemyCount = 0;
-//      Collection<Tile> neighbors = move.tile.neighbors();
-//      int connectivity = neighbors.size();
-//      for(Tile t : neighbors)
-//      {
-//        IslandNode island = game.getIsland(t);
-//        int state = island.getPlayer();
-//        if(0 != state)
-//        {
-//          if(state == playerIdx)
-//          {
-//            freindlyCount++;
-//          }
-//          else
-//          {
-//            enemyCount++;
-//          }
-//        }
-//      }
-//      if(freindlyCount == connectivity)
-//      {
-//        x -= 1;
-//      }
-//      else
-//      {
-//        x += freindlyCount;
-//      }
-//      x += enemyCount;
+      int playerIdx = game.currentPlayer;
+      int freindlyCount = 0;
+      int enemyCount = 0;
+      Collection<Tile> neighbors = move.tile.neighbors();
+      int connectivity = neighbors.size();
+      for(Tile t : neighbors)
+      {
+        IslandNode island = game.getIsland(t);
+        int state = island.getPlayer();
+        if(0 != state)
+        {
+          if(state == playerIdx)
+          {
+            freindlyCount++;
+          }
+          else
+          {
+            enemyCount++;
+          }
+        }
+      }
+      if(freindlyCount == connectivity)
+      {
+        x -= 1;
+      }
+      else
+      {
+        x += freindlyCount;
+      }
+      x += enemyCount;
     }
     else
     {

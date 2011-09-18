@@ -13,14 +13,14 @@ public class MemoryAi<T extends Game<T>> implements Ai<T> {
     this.inner = inner;
   }
 
-  public IterativeResult<Move<T>> newContemplation(final Game<T> game) {
+  public IterativeResult<GameProjection<T>> newContemplation(final Game<T> game) {
     Key<T> key = new Key<T>(game, this);
-    @SuppressWarnings("unchecked") IterativeResult<Move<T>> result = (IterativeResult<Move<T>>) game.getCache(key);
+    @SuppressWarnings("unchecked") IterativeResult<GameProjection<T>> result = (IterativeResult<GameProjection<T>>) game.getCache(key);
     if (null == result) {
-      result = new IterativeResult<Move<T>>() {
+      result = new IterativeResult<GameProjection<T>>() {
 
-        IterativeResult<Move<T>> innerMove = inner.newContemplation(game);
-        GameMemoryTree.CachedMove<T> cachedMove = null;
+        IterativeResult<GameProjection<T>> innerMove = inner.newContemplation(game);
+        GameProjection<T> cachedMove = null;
         double progress = 0;
         public double think() {
           if(1. > progress)
@@ -31,15 +31,15 @@ public class MemoryAi<T extends Game<T>> implements Ai<T> {
           return progress;
         }
 
-        public Move<T> best() {
+        public GameProjection<T> best() {
           if(null == cachedMove)
           {
-            cachedMove = new GameMemoryTree.CachedMove<T>(innerMove.best());
+            cachedMove = innerMove.best();
           }
           return cachedMove;
         }
 
-        public void hint(Move<T> hint) {
+        public void hint(GameProjection<T> hint) {
           if(1. > progress)
           {
             innerMove.hint(hint);

@@ -15,10 +15,16 @@ import org.sawdust.goagain.shared.go.ai.GoAI;
 
 public class MonteCarloContemplation implements IterativeResult<Move<GoGame>>
 {
-  /**
-   * 
-   */
-  //private final GoAI goAI;
+
+  public static <T extends Comparable<T>> T floorKey(TreeMap<T, ?> commandSpace, T d) {
+    T last = null;
+    for(T item : commandSpace.keySet())
+    {
+      if(item.compareTo(d) > 0) return last;
+      last = item;
+    }
+    return last;
+  }
 
   private class Scenario
   {
@@ -72,7 +78,7 @@ public class MonteCarloContemplation implements IterativeResult<Move<GoGame>>
         if(0 > moveFitness) throw new RuntimeException("Move with negative fitness: " + c.getCommandText());
         total += moveFitness;
       }
-      Double floorKey = GoAI.floorKey(commandSpace, total * Math.random());
+      Double floorKey = floorKey(commandSpace, total * Math.random());
       Move<GoGame> move = commandSpace.get(floorKey);
       return move;
     }

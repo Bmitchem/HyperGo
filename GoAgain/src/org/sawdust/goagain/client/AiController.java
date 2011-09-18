@@ -1,7 +1,7 @@
 package org.sawdust.goagain.client;
 
 import org.sawdust.goagain.shared.Game;
-import org.sawdust.goagain.shared.Move;
+import org.sawdust.goagain.shared.ai.Ai.GameProjection;
 import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.ai.GoAI;
@@ -21,9 +21,12 @@ public class AiController {
 
   public final class AiTask extends Timer {
     private double progress = 0;
-    private final IterativeResult<Move<GoGame>> contemplation;
+    private final IterativeResult<GameProjection<GoGame>> contemplation;
     private final AsyncCallback<Void> aiChainHandler;
-    double reps = 1;
+    int minReps = 1;
+    int maxReps = 1000;
+    double reps = minReps;
+    double targetTime = 100.;
 
     public AiTask(GoAI goAI, AsyncCallback<Void> aiChainHandler) {
       this.aiChainHandler = aiChainHandler;
@@ -42,14 +45,19 @@ public class AiController {
       }
       else
       {
+        if(minReps > reps) reps = minReps;
+        if(maxReps < reps) reps = maxReps;
         long timer = -System.currentTimeMillis();
         for(int j=0;j<reps;j++)
         {
           progress = contemplation.think();
         }
         timer += System.currentTimeMillis();
-        reps *= Math.pow(250./timer, 0.3);
-        pct.setText(((int)(progress*100.)) + "%");
+        reps *= Math.pow(targetTime/timer, 0.3);
+        String text = ((int)(progress*100.)) + "%";
+        System.out.println(text + " complete after " + timer + "ms \t(" + progress + "; " + reps + ")");
+        if(!pct.getText().equals(text)) pct.setText(text);
+        this.schedule(5);
       }
     }
 
@@ -60,11 +68,11 @@ public class AiController {
 
     protected void finish() {
       try {
-        Move<GoGame> best = contemplation.best();
+        GameProjection<GoGame> best = contemplation.best();
         if(null != best)
         {
           GoBoardWidget board = AiController.this.goGameController.board;
-          Game<GoGame> move = best.move();
+          Game<GoGame> move = best.firstMove().move();
           Game<GoGame> unwrap = move.unwrap();
           board.setGame((GoGame) unwrap);
           AiController.this.goGameController.saveState(aiChainHandler);
@@ -137,9 +145,9 @@ public class AiController {
       }
     };
     final GoAI goAI = ai[this.goGameController.board.getGame().currentPlayer - 1];
+    aiDialogBox.show();
+    pct.setText("");
     if (goAI.useServer && !GoAI.isServer) {
-      aiDialogBox.show();
-      pct.setText("");
       GoGameController.service.move(this.goGameController.board.getGame(), goAI, new AsyncCallback<GoGame>() {
         public void onFailure(Throwable caught) {
           caught.printStackTrace();
@@ -157,12 +165,7 @@ public class AiController {
         }
       });
     } else {
-      new Timer(){
-        @Override
-        public void run() {
-          aiDialogBox.show();
-          new AiTask(goAI, aiChainHandler).scheduleRepeating(1);
-        }}.schedule(1);
+      new AiTask(goAI, aiChainHandler).schedule(1);
     }
   }
 }
