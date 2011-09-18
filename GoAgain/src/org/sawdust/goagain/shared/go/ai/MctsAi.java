@@ -14,7 +14,6 @@ import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.ai.Ai.GameProjection;
 import org.sawdust.goagain.shared.go.GoGame;
-import org.sawdust.goagain.shared.go.MonteCarloFitness;
 
 /**
  * See Also: 

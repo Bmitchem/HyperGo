@@ -109,4 +109,18 @@ public class PredictionAi<T extends Game<T>> extends FitnessAi<T> {
   public PredictionContemplation<T> newContemplation(final Game<T> game) {
     return new PredictionContemplation<T>(this, game);
   }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("PredictionAi [opponent=");
+    builder.append(opponent);
+    builder.append(", fitness=");
+    builder.append(fitness);
+    builder.append(", intuition=");
+    builder.append(intuition);
+    builder.append("]");
+    return builder.toString();
+  }
+  
 }

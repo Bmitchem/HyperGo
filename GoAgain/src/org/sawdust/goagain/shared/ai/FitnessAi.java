@@ -131,10 +131,14 @@ public class FitnessAi<T extends Game<T>> implements Ai<T> {
   protected GameFitness<T> fitness;
   protected MoveFitness<T> intuition;
   
-  public FitnessAi(GameFitness<T> fitness, MoveFitness<T> intuition) {
+  protected FitnessAi(GameFitness<T> fitness, MoveFitness<T> intuition) {
     super();
     this.fitness = fitness;
     this.intuition = intuition;
+  }
+
+  public FitnessAi(GameFitness<T> judgement) {
+    this(judgement, null);
   }
 
   public FitnessContemplation<T> newContemplation(final Game<T> game) {
@@ -158,8 +162,10 @@ public class FitnessAi<T extends Game<T>> implements Ai<T> {
   }
   
   protected Collection<? extends Move<T>> getMoves(Game<T> game) {
+    Collection<? extends Move<T>> moves = game.getMoves();
+    if(null == intuition) return moves;
     TreeMap<MoveSort,Move<T>> map = new TreeMap<MoveSort, Move<T>>();
-    for(Move<T> move : game.getMoves())
+    for(Move<T> move : moves)
     {
       T unwrap = game.unwrap();
       double fitness = intuition.moveFitness(move, unwrap);
@@ -167,4 +173,16 @@ public class FitnessAi<T extends Game<T>> implements Ai<T> {
     }
     return map.values();
   }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("FitnessAi [fitness=");
+    builder.append(fitness);
+    builder.append(", intuition=");
+    builder.append(intuition);
+    builder.append("]");
+    return builder.toString();
+  }
+  
 }

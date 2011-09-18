@@ -1,4 +1,4 @@
-package org.sawdust.goagain.shared.go;
+package org.sawdust.goagain.shared.go.ai;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,7 +11,7 @@ import org.sawdust.goagain.shared.ai.FitnessValue;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.ai.MoveFitness;
-import org.sawdust.goagain.shared.go.ai.GoAI;
+import org.sawdust.goagain.shared.go.GoGame;
 
 public class MonteCarloContemplation implements IterativeResult<Move<GoGame>>
 {

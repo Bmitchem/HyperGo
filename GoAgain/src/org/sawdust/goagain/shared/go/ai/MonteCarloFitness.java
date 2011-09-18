@@ -1,10 +1,12 @@
-package org.sawdust.goagain.shared.go;
+package org.sawdust.goagain.shared.go.ai;
 
 import org.sawdust.goagain.shared.Move;
 import org.sawdust.goagain.shared.Util;
 import org.sawdust.goagain.shared.ai.FitnessValue;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
+import org.sawdust.goagain.shared.go.GoGame;
+import org.sawdust.goagain.shared.go.IslandNode;
 
 @SuppressWarnings("serial")
 public class MonteCarloFitness implements GameFitness<GoGame> {

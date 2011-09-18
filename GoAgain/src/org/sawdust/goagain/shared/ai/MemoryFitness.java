@@ -55,4 +55,16 @@ public class MemoryFitness<T extends Game<T>> implements GameFitness<T> {
     }
   }
 
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("MemoryFitness [inner=");
+    builder.append(inner);
+    builder.append("]");
+    return builder.toString();
+  }
+
+  
+  
 }

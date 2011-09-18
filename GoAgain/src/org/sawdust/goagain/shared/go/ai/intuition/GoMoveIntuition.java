@@ -1,8 +1,6 @@
-package org.sawdust.goagain.shared.go.ai;
+package org.sawdust.goagain.shared.go.ai.intuition;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 
 import org.sawdust.goagain.shared.Move;
 import org.sawdust.goagain.shared.ai.MoveFitness;
@@ -20,31 +18,31 @@ public class GoMoveIntuition implements MoveFitness<GoGame> {
     {
       GoGame.PlaceMove move = ((GoGame.PlaceMove)o1);
       
-      IslandNode space = game.getIsland(move.tile);
-      if(space.geometry.thin().getSize() < 2)
-      {
-        Map<IslandNode, Set<Tile>> neighbors = space.neighbors(game);
-        for(IslandNode island : neighbors.keySet())
-        {
-          if(island.getPlayer() != 0 && island.surrounds(space)) 
-          {
-            IslandContext surround = new IslandContext(game, island);
-            if(surround.liberties.size() >= 2) 
-            {
-              // Space is surrounded by an immortal island, and too small to make 2 liberties. This move is doomed.
-              return -1;
-            }
-            else
-            {
-              break;
-            }
-          }
-          else
-          {
-            break;
-          }
-        }
-      }
+//      IslandNode space = game.getIsland(move.tile);
+//      if(space.geometry.thin().getSize() < 2)
+//      {
+//        Map<IslandNode, Set<Tile>> neighbors = space.neighbors(game);
+//        for(IslandNode island : neighbors.keySet())
+//        {
+//          if(island.getPlayer() != 0 && island.surrounds(space)) 
+//          {
+//            IslandContext surround = new IslandContext(game, island);
+//            if(surround.liberties.size() >= 2) 
+//            {
+//              // Space is surrounded by an immortal island, and too small to make 2 liberties. This move is doomed.
+//              return -1;
+//            }
+//            else
+//            {
+//              break;
+//            }
+//          }
+//          else
+//          {
+//            break;
+//          }
+//        }
+//      }
       
       int playerIdx = game.currentPlayer;
       int freindlyCount = 0;
@@ -75,7 +73,7 @@ public class GoMoveIntuition implements MoveFitness<GoGame> {
       {
         x += freindlyCount;
       }
-      x += enemyCount;
+      x -= enemyCount;
     }
     else
     {

@@ -1,7 +1,6 @@
 package org.sawdust.goagain.shared.ai;
 
 import org.sawdust.goagain.shared.Game;
-import org.sawdust.goagain.shared.Move;
 
 @SuppressWarnings("serial")
 public class MemoryAi<T extends Game<T>> implements Ai<T> {

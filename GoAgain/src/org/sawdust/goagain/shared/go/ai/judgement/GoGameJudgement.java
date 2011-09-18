@@ -1,10 +1,11 @@
-package org.sawdust.goagain.shared.go.ai;
+package org.sawdust.goagain.shared.go.ai.judgement;
 
 import org.sawdust.goagain.shared.ai.FitnessValue;
 import org.sawdust.goagain.shared.ai.GameFitness;
 import org.sawdust.goagain.shared.ai.IterativeResult;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.IslandNode;
+import org.sawdust.goagain.shared.go.ai.IslandContext;
 
 @SuppressWarnings("serial")
 public class GoGameJudgement implements GameFitness<GoGame> {
@@ -93,10 +94,15 @@ public class GoGameJudgement implements GameFitness<GoGame> {
       }
 
       public void hint(FitnessValue hint) {
-        // TODO Auto-generated method stub
-        
       }
     };
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("GoGameJudgement");
+    return builder.toString();
   }
 
 }

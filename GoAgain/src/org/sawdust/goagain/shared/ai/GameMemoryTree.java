@@ -69,4 +69,9 @@ public class GameMemoryTree<T extends Game<T>> extends Game<T> {
     game.putCache(key, value);
   }
 
+  @Override
+  public Integer winner() {
+    return game.winner();
+  }
+
 }

@@ -8,6 +8,7 @@ import java.util.Map;
 public abstract class Game<T extends Game<T>> {
   public abstract Collection<? extends Move<T>> getMoves();
   public abstract int player();
+  public abstract Integer winner();
   public abstract T unwrap();
   
   private Map<Object,Object> cache = new HashMap<Object, Object>();

@@ -511,5 +511,10 @@ public class GoGame extends Game<GoGame> implements Serializable {
   public GoGame unwrap() {
     return this;
   }
+
+  @Override
+  public Integer winner() {
+    return null==winner?null:winner+1;
+  }
   
 }
