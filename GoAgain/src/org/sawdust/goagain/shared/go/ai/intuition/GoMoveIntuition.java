@@ -51,10 +51,10 @@ public class GoMoveIntuition implements MoveFitness<GoGame> {
       int connectivity = neighbors.size();
       for(Tile t : neighbors)
       {
-        IslandNode island = game.getIsland(t);
-        int state = island.getPlayer();
-        if(0 != state)
+        IslandNode<Integer> island = game.getIsland(t);
+        if(null != island.getPlayer())
         {
+          int state = island.getPlayer();
           if(state == playerIdx)
           {
             freindlyCount++;

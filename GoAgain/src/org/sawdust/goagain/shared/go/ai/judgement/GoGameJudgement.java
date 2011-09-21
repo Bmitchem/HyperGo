@@ -26,8 +26,8 @@ public class GoGameJudgement implements GameFitness<GoGame> {
     int scoreDiff = score1 - score2;
     double fitness = scoreDiff * 100;
 
-    for (IslandNode island : game.islands.values()) {
-      if(island.getPlayer() == 0) continue;
+    for (IslandNode<Integer> island : game.islands.values()) {
+      if(island.getPlayer() == null) continue;
       double bias = (playerIdx == island.getPlayer()) ? 1.0 : -1.0;
 
       // Liberty fitness
@@ -35,7 +35,7 @@ public class GoGameJudgement implements GameFitness<GoGame> {
       int libertyCount = surround.liberties.size();
       if(libertyCount >= 2) libertyCount = 2;
       int size = island.geometry.getPositions().size();
-      for(IslandNode i : surround.liberties)
+      for(IslandNode<Integer> i : surround.liberties)
       {
         size += i.geometry.getSize();
       }
@@ -100,9 +100,7 @@ public class GoGameJudgement implements GameFitness<GoGame> {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("GoGameJudgement");
-    return builder.toString();
+    return this.getClass().getSimpleName();
   }
 
 }

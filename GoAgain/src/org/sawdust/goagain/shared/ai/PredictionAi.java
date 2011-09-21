@@ -39,16 +39,18 @@ public class PredictionAi<T extends Game<T>> extends FitnessAi<T> {
         double oppositionProgress = opponentContemplation.think();
         if(1. <= oppositionProgress)
         {
-          org.sawdust.goagain.shared.ai.Ai.GameProjection<T> currentOppositionBest = opponentContemplation.best();
-          GameProjection<T> oppositionProjection = currentOppositionBest;
-          IterativeResult<FitnessValue> result = parent.fitness.gameFitness(oppositionProjection.finalGame().unwrap(), player);
-          while(1. > result.think()){}
-          FitnessValue gameFitness = result.best();
-          if(null == bestFitness || bestFitness.compareTo(gameFitness) < 0)
+          org.sawdust.goagain.shared.ai.Ai.GameProjection<T> currentOppositionProjection = opponentContemplation.best();
+          if(null != currentOppositionProjection)
           {
-            best = currentMove;
-            bestOpposition = oppositionProjection;
-            bestFitness = gameFitness;
+            IterativeResult<FitnessValue> result = parent.fitness.gameFitness(currentOppositionProjection.finalGame().unwrap(), player);
+            while(1. > result.think()){}
+            FitnessValue gameFitness = result.best();
+            if(null == bestFitness || bestFitness.compareTo(gameFitness) < 0)
+            {
+              best = currentMove;
+              bestOpposition = currentOppositionProjection;
+              bestFitness = gameFitness;
+            }
           }
           opponentContemplation = null;
           progress += 1. / size;

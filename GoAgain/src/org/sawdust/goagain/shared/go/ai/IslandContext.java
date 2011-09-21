@@ -10,16 +10,16 @@ import org.sawdust.goagain.shared.go.Tile;
 
 public class IslandContext
 {
-  public final Set<IslandNode> liberties = new HashSet<IslandNode>();
-  public final Set<IslandNode> territory = new HashSet<IslandNode>();
-  public final Set<IslandNode> contested = new HashSet<IslandNode>();
-  public final Set<IslandNode> opponent = new HashSet<IslandNode>();
+  public final Set<IslandNode<Integer>> liberties = new HashSet<IslandNode<Integer>>();
+  public final Set<IslandNode<Integer>> territory = new HashSet<IslandNode<Integer>>();
+  public final Set<IslandNode<Integer>> contested = new HashSet<IslandNode<Integer>>();
+  public final Set<IslandNode<Integer>> opponent = new HashSet<IslandNode<Integer>>();
 
-  public IslandContext(GoGame game, IslandNode island) {
-    for(Entry<IslandNode, Set<Tile>> e : island.neighbors(game).entrySet())
+  public IslandContext(GoGame game, IslandNode<Integer> island) {
+    for(Entry<IslandNode<Integer>, Set<Tile>> e : island.neighbors(game).entrySet())
     {
-      IslandNode i = e.getKey();
-      if(i.getPlayer()==0)
+      IslandNode<Integer> i = e.getKey();
+      if(null == i.getPlayer())
       {
         if(i.geometry.thin().getSize() < 2 && island.surrounds(i))
         {

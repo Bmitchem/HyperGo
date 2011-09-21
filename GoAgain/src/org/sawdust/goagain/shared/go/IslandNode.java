@@ -9,23 +9,23 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 @SuppressWarnings("serial")
-public class IslandNode implements Serializable {
+public class IslandNode<T> implements Serializable {
 
   public IslandGeometry geometry;
-  public int player;
+  public T player;
   public Map<Integer,Set<Tile>> border = new HashMap<Integer, Set<Tile>>();
 
   protected IslandNode() {
     super();
   }
 
-  private IslandNode(int player, IslandGeometry geometry) {
+  private IslandNode(T player, IslandGeometry geometry) {
     super();
     this.player = player;
     this.geometry = geometry;
   }
 
-  public IslandNode(int player, IslandGeometry geometry, Collection<IslandGeometry> neighbors) {
+  public IslandNode(T player, IslandGeometry geometry, Collection<IslandGeometry> neighbors) {
     this(player, geometry);
     if(null != neighbors)
     {
@@ -40,11 +40,11 @@ public class IslandNode implements Serializable {
     }
   }
 
-  public IslandNode replace(IslandNode thisIsland, Collection<IslandNode> created) {
-    IslandNode mutant = new IslandNode(player, geometry);
+  public IslandNode<T> replace(IslandNode<T> thisIsland, Collection<IslandNode<T>> created) {
+    IslandNode<T> mutant = new IslandNode<T>(player, geometry);
     mutant.border.putAll(border);
     mutant.border.remove(thisIsland.getId());
-    for(IslandNode i : created)
+    for(IslandNode<T> i : created)
     {
       Set<Tile> countConnections = geometry.countConnections(i.geometry);
       if(0 < countConnections.size())
@@ -55,11 +55,11 @@ public class IslandNode implements Serializable {
     return mutant;
   }
 
-  public IslandNode replace(Collection<IslandNode> toJoin, IslandNode created) {
-    IslandNode mutant = new IslandNode(player, geometry);
+  public IslandNode<T> replace(Collection<IslandNode<T>> toJoin, IslandNode<T> created) {
+    IslandNode<T> mutant = new IslandNode<T>(player, geometry);
     mutant.border.putAll(border);
     Set<Tile> countConnections = new HashSet<Tile>();
-    for(IslandNode i : toJoin)
+    for(IslandNode<T> i : toJoin)
     {
       Collection<Tile> integer = mutant.border.get(i.getId());
       if(null != integer)
@@ -74,8 +74,8 @@ public class IslandNode implements Serializable {
     return mutant;
   }
 
-  public IslandNode capture() {
-    IslandNode mutant = new IslandNode(0, geometry);
+  public IslandNode<T> capture() {
+    IslandNode<T> mutant = new IslandNode<T>(null, geometry);
     mutant.border.putAll(border);
     return mutant;
   }
@@ -84,14 +84,14 @@ public class IslandNode implements Serializable {
     return geometry.getId();
   }
 
-  public int getPlayer() {
+  public T getPlayer() {
     return player;
   }
 
   public boolean isDead(GoGame game) {
-    for(IslandNode n : neighbors(game).keySet())
+    for(IslandNode<Integer> n : neighbors(game).keySet())
     {
-      if(0 == n.getPlayer())
+      if(null == n.getPlayer())
       {
         return false;
       }
@@ -99,16 +99,16 @@ public class IslandNode implements Serializable {
     return true;
   }
 
-  public boolean surrounds(IslandNode space) {
+  public boolean surrounds(IslandNode<T> space) {
     if(space.border.size() > 1) return false;
     return space.border.containsKey(getId());
   }
 
-  public Map<IslandNode, Set<Tile>> neighbors(GoGame game) {
-    Map<IslandNode, Set<Tile>> arrayList = new HashMap<IslandNode, Set<Tile>>();
+  public Map<IslandNode<T>, Set<Tile>> neighbors(Map<Integer, IslandNode<T>> map) {
+    Map<IslandNode<T>, Set<Tile>> arrayList = new HashMap<IslandNode<T>, Set<Tile>>();
     for(Entry<Integer, Set<Tile>> i : border.entrySet())
     {
-      IslandNode key = game.islands.get(i.getKey());
+      IslandNode<T> key = map.get(i.getKey());
       if(null == key)
       {
         assert(null != key);
@@ -116,6 +116,11 @@ public class IslandNode implements Serializable {
       arrayList.put(key, i.getValue());
     }
     return arrayList;
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<IslandNode<Integer>, Set<Tile>> neighbors(GoGame game) {
+    return ((IslandNode<Integer>)this).neighbors(game.islands);
   }
 
   @Override
@@ -128,7 +133,7 @@ public class IslandNode implements Serializable {
     if (this == obj) return true;
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
-    IslandNode other = (IslandNode) obj;
+    IslandNode<?> other = (IslandNode<?>) obj;
     if (border == null) {
       if (other.border != null) return false;
     } else if (!border.equals(other.border)) return false;
@@ -155,9 +160,9 @@ public class IslandNode implements Serializable {
   public double getFreedom(GoGame game) {
     int freedom = 0;
     // TODO: This gives too high a value to freedom, need to track tiles in each border
-    for(Entry<IslandNode, Set<Tile>> n : neighbors(game).entrySet())
+    for(Entry<IslandNode<Integer>, Set<Tile>> n : neighbors(game).entrySet())
     {
-      if(0 == n.getKey().getPlayer())
+      if(null == n.getKey().getPlayer())
       {
         freedom += n.getValue().size();
       }
@@ -170,11 +175,11 @@ public class IslandNode implements Serializable {
     boolean foundFreindly = false;
     for(Entry<Integer, Set<Tile>> e : border.entrySet())
     {
-      IslandNode n = game.islands.get(e.getKey());
-      int p = n.getPlayer();
-      if(0 != p)
+      IslandNode<Integer> n = game.islands.get(e.getKey());
+      Integer p = n.getPlayer();
+      if(null != p)
       {
-        if(p == forPlayer) 
+        if(p.equals(forPlayer)) 
         {
           foundFreindly = true;
         }
@@ -199,18 +204,19 @@ public class IslandNode implements Serializable {
     return foundFreindly;
   }
 
-  public Collection<IslandNode> getConnectedMatching(GoGame game) {
-    HashSet<IslandNode> set = new HashSet<IslandNode>();
+  public Collection<IslandNode<Integer>> getConnectedMatching(GoGame game) {
+    HashSet<IslandNode<Integer>> set = new HashSet<IslandNode<Integer>>();
     getConnectedMatching(game, set);
     return set;
   }
 
-  public void getConnectedMatching(GoGame game, HashSet<IslandNode> set) {
-    set.add(this);
-    for(IslandNode n : new HashSet<IslandNode>(neighbors(game).keySet()))
+  @SuppressWarnings("unchecked")
+  public void getConnectedMatching(GoGame game, HashSet<IslandNode<Integer>> set) {
+    set.add((IslandNode<Integer>) this);
+    for(IslandNode<Integer> n : new HashSet<IslandNode<Integer>>(neighbors(game).keySet()))
     {
-      int p = n.getPlayer();
-      if(0 == p && !set.contains(n))
+      Integer p = n.getPlayer();
+      if(null == p && !set.contains(n))
       {
         n.getConnectedMatching(game, set);
       }

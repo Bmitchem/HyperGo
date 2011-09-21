@@ -109,7 +109,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
 
   private BoardLayout layout = Util.randomValue(BoardLayout.layouts);
   public Set<String> previousStates = new TreeSet<String>();
-  public Map<Integer, IslandNode> islands = new HashMap<Integer, IslandNode>();
+  public Map<Integer, IslandNode<Integer>> islands = new HashMap<Integer, IslandNode<Integer>>();
   
   public int currentPlayer = 1;
   public boolean scorePrisoners = true;
@@ -121,7 +121,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
     Collection<IslandGeometry> partitions = new IslandGeometry(getLayout().getTiles().values()).partition(Integer.MAX_VALUE);
     for(IslandGeometry geometry : partitions)
     {
-      add(new IslandNode(0, geometry, partitions));
+      add(new IslandNode<Integer>(null, geometry, partitions));
     }
     assert(isValid());
   }
@@ -142,7 +142,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
     Collection<IslandGeometry> partitions = new IslandGeometry(getLayout().getTiles().values()).partition(Integer.MAX_VALUE);
     for(IslandGeometry geometry : partitions)
     {
-      add(new IslandNode(0, geometry, partitions));
+      add(new IslandNode<Integer>(null, geometry, partitions));
     }
   }
 
@@ -150,12 +150,12 @@ public class GoGame extends Game<GoGame> implements Serializable {
     return new GoGame(this.layout);
   }
 
-  private void add(IslandNode islandNode) {
+  private void add(IslandNode<Integer> islandNode) {
     islands.put(islandNode.getId(), islandNode);
   }
 
-  public IslandNode getIsland(Tile t) {
-    for(IslandNode i : islands.values())
+  public IslandNode<Integer> getIsland(Tile t) {
+    for(IslandNode<Integer> i : islands.values())
     {
       if(i.geometry.contains(t)) return i;
     }
@@ -166,15 +166,15 @@ public class GoGame extends Game<GoGame> implements Serializable {
     ArrayList<Move<GoGame>> list = new ArrayList<Move<GoGame>>();
     if(null == winner)
     {
-      for(final IslandNode i : islands.values())
+      for(final IslandNode<Integer> i : islands.values())
       {
-        if(0 == i.getPlayer())
+        if(null == i.getPlayer())
         {
           if(i.geometry.positions.size() == 1 && i.border.size() == 1)
           {
             Integer surroundingIslandId = i.border.keySet().iterator().next();
-            IslandNode surroundingIsland = islands.get(surroundingIslandId);
-            if(surroundingIsland.getPlayer() == currentPlayer)
+            IslandNode<Integer> surroundingIsland = islands.get(surroundingIslandId);
+            if(surroundingIsland.getPlayer().equals(currentPlayer))
             {
               continue;
             }
@@ -215,17 +215,17 @@ public class GoGame extends Game<GoGame> implements Serializable {
     {
       int highestInt = 0;
       char data[] = new char[1000];
-      for(IslandNode i : islands.values())
+      for(IslandNode<Integer> i : islands.values())
       {
         char c;
-        int player = i.getPlayer();
-        if(0 == player)
+        Integer player = i.getPlayer();
+        if(null == player)
         {
           c = ' ';
         }
         else
         {
-          c = Integer.toString(player).toCharArray()[0];
+          c = player.toString().toCharArray()[0];
         }
         for(Tile t : i.geometry.getPositions())
         {
@@ -241,16 +241,16 @@ public class GoGame extends Game<GoGame> implements Serializable {
   }
 
   public GoGame play(final Tile tile) {
-    IslandNode thisIsland = getIsland(tile);
-    if(0 != thisIsland.getPlayer()) return null;
+    IslandNode<Integer> thisIsland = getIsland(tile);
+    if(null != thisIsland.getPlayer()) return null;
     GoGame nextGame = this.cloneGame();
     nextGame.passesInARow = 0;
     // Split the whitespace island
-    Collection<IslandNode> splitNeighbors = thisIsland.neighbors(nextGame).keySet();
-    Collection<IslandNode> splitIslands = new ArrayList<IslandNode>();
+    Collection<IslandNode<Integer>> splitNeighbors = thisIsland.neighbors(nextGame).keySet();
+    Collection<IslandNode<Integer>> splitIslands = new ArrayList<IslandNode<Integer>>();
     Collection<IslandGeometry> split = thisIsland.geometry.remove(tile);
     Set<IslandGeometry> splitNeighborhood = new HashSet<IslandGeometry>(split);
-    for(IslandNode n : splitNeighbors)
+    for(IslandNode<Integer> n : splitNeighbors)
     {
       splitNeighborhood.add(n.geometry);
     }
@@ -258,23 +258,23 @@ public class GoGame extends Game<GoGame> implements Serializable {
     splitNeighborhood.add(moveGeometry);
     for(IslandGeometry i : split)
     {
-      splitIslands.add(new IslandNode(0, i, splitNeighborhood));
+      splitIslands.add(new IslandNode<Integer>(null, i, splitNeighborhood));
     }
-    IslandNode moveNode = new IslandNode(currentPlayer, moveGeometry, splitNeighborhood);
+    IslandNode<Integer> moveNode = new IslandNode<Integer>(currentPlayer, moveGeometry, splitNeighborhood);
     splitIslands.add(moveNode);
     nextGame.remove(thisIsland);
-    for(IslandNode i : splitIslands)
+    for(IslandNode<Integer> i : splitIslands)
     {
       nextGame.add(i);
     }
     // Join new adjacent compatible islands
-    Collection<IslandNode> toJoin = new ArrayList<IslandNode>();
-    Collection<IslandNode> possiblyCaptured = new ArrayList<IslandNode>();
+    Collection<IslandNode<Integer>> toJoin = new ArrayList<IslandNode<Integer>>();
+    Collection<IslandNode<Integer>> possiblyCaptured = new ArrayList<IslandNode<Integer>>();
     toJoin.add(moveNode);
-    for(IslandNode i : splitNeighbors)
+    for(IslandNode<Integer> i : splitNeighbors)
     {
       nextGame.remove(i);
-      IslandNode replace = i.replace(thisIsland, splitIslands);
+      IslandNode<Integer> replace = i.replace(thisIsland, splitIslands);
       nextGame.add(replace);
       if(replace.border.containsKey(moveNode.getId()))
       {
@@ -292,27 +292,27 @@ public class GoGame extends Game<GoGame> implements Serializable {
     {
       Set<IslandGeometry> joinNeighbors = new HashSet<IslandGeometry>();
       Set<Tile> joinedTiles = new HashSet<Tile>();
-      for(IslandNode i : toJoin)
+      for(IslandNode<Integer> i : toJoin)
       {
-        for(IslandNode n : i.neighbors(nextGame).keySet())
+        for(IslandNode<Integer> n : i.neighbors(nextGame).keySet())
         {
           joinNeighbors.add(n.geometry);
         }
         joinedTiles.addAll(i.geometry.getPositions());
       }
-      for(IslandNode i : toJoin)
+      for(IslandNode<Integer> i : toJoin)
       {
         joinNeighbors.remove(i.geometry);
       }
-      IslandNode joinedIsland = new IslandNode(currentPlayer, new IslandGeometry(joinedTiles), joinNeighbors);
+      IslandNode<Integer> joinedIsland = new IslandNode<Integer>(currentPlayer, new IslandGeometry(joinedTiles), joinNeighbors);
       for(IslandGeometry i : joinNeighbors)
       {
-        IslandNode node = nextGame.islands.get(i.getId());
+        IslandNode<Integer> node = nextGame.islands.get(i.getId());
         nextGame.remove(node);
-        IslandNode replace = node.replace(toJoin, joinedIsland);
+        IslandNode<Integer> replace = node.replace(toJoin, joinedIsland);
         nextGame.add(replace);
       }
-      for(IslandNode i : toJoin) nextGame.remove(i);
+      for(IslandNode<Integer> i : toJoin) nextGame.remove(i);
       nextGame.add(joinedIsland);
       possiblyCaptured.add(joinedIsland);
     }
@@ -321,9 +321,9 @@ public class GoGame extends Game<GoGame> implements Serializable {
       possiblyCaptured.add(moveNode);
     }
     // Capture surrounded islands
-    for(IslandNode i : possiblyCaptured)
+    for(IslandNode<Integer> i : possiblyCaptured)
     {
-      IslandNode captured = nextGame.islands.get(i.getId());
+      IslandNode<Integer> captured = nextGame.islands.get(i.getId());
       if(captured.isDead(nextGame))
       {
         nextGame.remove(captured);
@@ -347,10 +347,10 @@ public class GoGame extends Game<GoGame> implements Serializable {
 
   public void printIslands() {
     System.out.println("\nGame Islands:");
-    for(IslandNode i : islands.values())
+    for(IslandNode<Integer> i : islands.values())
     {
       System.out.println(i.toString());
-      if(0 != i.getPlayer())
+      if(null != i.getPlayer())
       {
         IslandContext islandContext = new IslandContext(this, i);
         System.out.println("  Liberties: " + idList(islandContext.liberties));
@@ -361,13 +361,13 @@ public class GoGame extends Game<GoGame> implements Serializable {
     }
   }
 
-  private String idList(Set<IslandNode> liberties) {
+  private String idList(Set<IslandNode<Integer>> liberties) {
     ArrayList<Integer> list = new ArrayList<Integer>();
-    for(IslandNode i : liberties) list.add(i.getId());
+    for(IslandNode<Integer> i : liberties) list.add(i.getId());
     return list.toString();
   }
 
-  private void remove(IslandNode thisIsland) {
+  private void remove(IslandNode<Integer> thisIsland) {
     islands.remove(thisIsland.getId());
   }
 
@@ -378,7 +378,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
 
   private boolean isValid() {
     Set<Tile> allTiles = new HashSet<Tile>(getLayout().getTiles().values());
-    for(IslandNode i : islands.values())
+    for(IslandNode<Integer> i : islands.values())
     {
       if(0 == i.neighbors(this).size())
       {
@@ -431,19 +431,19 @@ public class GoGame extends Game<GoGame> implements Serializable {
 
   public int getTerritory(int player) {
     int territory = 0;
-    for(IslandNode island : islands.values())
+    for(IslandNode<Integer> island : islands.values())
     {
-      if(island.getPlayer() == player)
-      {
-        territory += island.geometry.getSize();
-      }
-      else if(island.getPlayer() == 0) 
+      if(island.getPlayer() == null) 
       {
         if(island.isTerritory(player, this))
         {
           territory += island.geometry.getSize();
         }
       }
+      else if(island.getPlayer().equals(player))
+      {
+        territory += island.geometry.getSize();
+      } 
     }
     return territory;
   }
@@ -487,7 +487,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
     builder.append("GoGame [currentPlayer=");
     builder.append(currentPlayer);
     builder.append(", islands=");
-    for(IslandNode i : islands.values())
+    for(IslandNode<Integer> i : islands.values())
     {
       builder.append("\n  ");
       builder.append(i);

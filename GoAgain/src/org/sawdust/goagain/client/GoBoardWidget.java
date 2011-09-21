@@ -99,9 +99,9 @@ public abstract class GoBoardWidget extends SimplePanel {
     }
     if(connectDots)
     {
-      for(IslandNode i : game.islands.values())
+      for(IslandNode<Integer> i : game.islands.values())
       {
-        if(i.getPlayer() == 0) continue;
+        if(i.getPlayer() == null) continue;
         for(Tile tile : i.geometry.getPositions())
         {
           double x1 = tile.x * size;
@@ -124,13 +124,13 @@ public abstract class GoBoardWidget extends SimplePanel {
         }
       }
     }
-    for(IslandNode i : game.islands.values())
+    for(IslandNode<Integer> i : game.islands.values())
     {
       for(Tile tile : i.geometry.getPositions())
       {
         double x1 = tile.x * size;
         double y1 = tile.y * size;
-        if(0 < i.getPlayer())
+        if(null != i.getPlayer())
         {
           context.setFillStyle(getColor(i.getPlayer()));
           context.beginPath();

@@ -89,9 +89,9 @@ public class MonteCarloFitness implements GameFitness<GoGame> {
   protected static int count(GoGame prevGame, int player)
   {
     int stoneCount = 0;
-    for(IslandNode i : prevGame.islands.values())
+    for(IslandNode<Integer> i : prevGame.islands.values())
     {
-      if(i.getPlayer() == player)
+      if(i.getPlayer().equals(player))
       {
         stoneCount += i.geometry.getSize();
       }

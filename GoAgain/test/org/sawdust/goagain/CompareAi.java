@@ -9,6 +9,7 @@ import org.sawdust.goagain.shared.boards.RectangularLayout;
 import org.sawdust.goagain.shared.go.GoGame;
 import org.sawdust.goagain.shared.go.ai.intuition.GoMoveIntuition;
 import org.sawdust.goagain.shared.go.ai.judgement.GoGameJudgement;
+import org.sawdust.goagain.shared.go.ai.judgement.GoGameJudgement2;
 import org.sawdust.goagain.shared.go.ai.judgement.TerritoryJudgement;
 
 public class CompareAi {
@@ -20,6 +21,19 @@ public class CompareAi {
     @SuppressWarnings("unchecked") AiCompetition<GoGame> compete = new AiCompetition<GoGame>(
         new FitnessAi<GoGame>(new MemoryFitness<GoGame>(new TerritoryJudgement())),
         new FitnessAi<GoGame>(new MemoryFitness<GoGame>(new GoGameJudgement()))
+        );
+    compete.verbosity = 1;
+    for(int i=0;i<10;i++) compete.compete(AiCompetition.randomMoves(new GoGame(layout), 6));
+    compete.print();
+  }
+
+  @Test
+  public void testJudgement2()
+  {
+    RectangularLayout layout = new RectangularLayout();
+    @SuppressWarnings("unchecked") AiCompetition<GoGame> compete = new AiCompetition<GoGame>(
+        new FitnessAi<GoGame>(new MemoryFitness<GoGame>(new GoGameJudgement())),
+        new FitnessAi<GoGame>(new MemoryFitness<GoGame>(new GoGameJudgement2()))
         );
     compete.verbosity = 1;
     for(int i=0;i<10;i++) compete.compete(AiCompetition.randomMoves(new GoGame(layout), 6));
