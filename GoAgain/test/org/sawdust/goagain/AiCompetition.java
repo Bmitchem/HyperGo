@@ -41,7 +41,7 @@ public class AiCompetition<T extends Game<T>>
     gameTimer += System.currentTimeMillis();
     winner = game.winner();
     incrementPlayerWin(winner);
-    if(1 <= verbosity) System.out.println(String.format("Player %s wins after %s turns (%.3f)", winner, turns, gameTimer/1000.));
+    if(1 <= verbosity) System.out.println(String.format("Player %s wins after %s turns (game clock: %.3fs)", winner, turns, gameTimer/1000.));
   }
 
   final int minReps = 1;

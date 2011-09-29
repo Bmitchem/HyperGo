@@ -246,7 +246,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
     GoGame nextGame = this.cloneGame();
     nextGame.passesInARow = 0;
     // Split the whitespace island
-    Collection<IslandNode<Integer>> splitNeighbors = thisIsland.neighbors(nextGame).keySet();
+    Collection<IslandNode<Integer>> splitNeighbors = thisIsland.neighbors(nextGame.islands).keySet();
     Collection<IslandNode<Integer>> splitIslands = new ArrayList<IslandNode<Integer>>();
     Collection<IslandGeometry> split = thisIsland.geometry.remove(tile);
     Set<IslandGeometry> splitNeighborhood = new HashSet<IslandGeometry>(split);
@@ -294,7 +294,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
       Set<Tile> joinedTiles = new HashSet<Tile>();
       for(IslandNode<Integer> i : toJoin)
       {
-        for(IslandNode<Integer> n : i.neighbors(nextGame).keySet())
+        for(IslandNode<Integer> n : i.neighbors(nextGame.islands).keySet())
         {
           joinNeighbors.add(n.geometry);
         }
@@ -380,7 +380,7 @@ public class GoGame extends Game<GoGame> implements Serializable {
     Set<Tile> allTiles = new HashSet<Tile>(getLayout().getTiles().values());
     for(IslandNode<Integer> i : islands.values())
     {
-      if(0 == i.neighbors(this).size())
+      if(0 == i.neighbors(this.islands).size())
       {
         if(islands.size() > 1)
         {

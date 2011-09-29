@@ -16,7 +16,7 @@ public class IslandContext
   public final Set<IslandNode<Integer>> opponent = new HashSet<IslandNode<Integer>>();
 
   public IslandContext(GoGame game, IslandNode<Integer> island) {
-    for(Entry<IslandNode<Integer>, Set<Tile>> e : island.neighbors(game).entrySet())
+    for(Entry<IslandNode<Integer>, Set<Tile>> e : island.neighbors(game.islands).entrySet())
     {
       IslandNode<Integer> i = e.getKey();
       if(null == i.getPlayer())
